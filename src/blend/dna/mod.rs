@@ -157,3 +157,6 @@ fn check_index(kind: &'static str, idx: u32, len: usize) -> Result<()> {
 	}
 	Ok(())
 }
+
+#[cfg(test)]
+mod tests;

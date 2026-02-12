@@ -29,4 +29,6 @@ pub mod walk;
 /// Inbound reference query command.
 pub mod xref;
 
+#[cfg(test)]
+pub(crate) mod test_support;
 pub(crate) mod util;

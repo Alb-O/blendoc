@@ -203,3 +203,6 @@ pub fn walk_ptr_chain<'a>(dna: &Dna, index: &PointerIndex<'a>, ids: &IdIndex, st
 
 	Ok(WalkResult { items, stop: None })
 }
+
+#[cfg(test)]
+mod tests;

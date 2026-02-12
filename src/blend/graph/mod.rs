@@ -197,3 +197,6 @@ fn resolve_graph_node<'a>(dna: &Dna, index: &PointerIndex<'a>, ids: &IdIndex, pt
 		id_name: ids.get_by_ptr(canonical).map(|item| Arc::<str>::from(item.id_name.as_ref())),
 	})
 }
+
+#[cfg(test)]
+mod tests;

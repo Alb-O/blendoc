@@ -105,3 +105,6 @@ pub struct BlockStats {
 	/// Frequency table by block code.
 	pub codes: HashMap<[u8; 4], u32>,
 }
+
+#[cfg(test)]
+mod tests;

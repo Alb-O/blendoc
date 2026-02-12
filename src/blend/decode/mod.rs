@@ -312,3 +312,6 @@ fn skip_field_storage(cursor: &mut Cursor<'_>, dna: &Dna, type_name: &str, field
 fn is_padding_field(ident: &str, type_name: &str, inline_array: usize) -> bool {
 	(ident.starts_with("_pad") || ident.starts_with("pad")) && inline_array > 0 && matches!(type_name, "char" | "uchar" | "uint8_t")
 }
+
+#[cfg(test)]
+mod tests;

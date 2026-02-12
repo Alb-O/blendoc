@@ -180,3 +180,6 @@ impl<'a> ResolvedPtr<'a> {
 		self.payload().get(start..end)
 	}
 }
+
+#[cfg(test)]
+mod tests;

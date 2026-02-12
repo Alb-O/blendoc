@@ -146,3 +146,6 @@ fn value_kind(value: &Value) -> &'static str {
 		Value::Struct(_) => "Struct",
 	}
 }
+
+#[cfg(test)]
+mod tests;

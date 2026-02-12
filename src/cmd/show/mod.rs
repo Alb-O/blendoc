@@ -292,3 +292,6 @@ struct ShowPathJson {
 	stop: Option<ShowStopJson>,
 	hops: Option<Vec<ShowHopJson>>,
 }
+
+#[cfg(test)]
+mod tests;

@@ -216,3 +216,6 @@ struct GraphEdgeJson {
 	to: String,
 	field: String,
 }
+
+#[cfg(test)]
+mod tests;

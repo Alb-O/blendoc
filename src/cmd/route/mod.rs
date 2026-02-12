@@ -245,3 +245,6 @@ struct RouteJson {
 	truncated: Option<String>,
 	path_edges: Vec<RouteEdgeJson>,
 }
+
+#[cfg(test)]
+mod tests;

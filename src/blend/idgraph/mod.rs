@@ -130,3 +130,6 @@ pub fn build_id_graph<'a>(dna: &Dna, index: &PointerIndex<'a>, ids: &IdIndex, op
 
 	Ok(IdGraphResult { nodes, edges, truncated })
 }
+
+#[cfg(test)]
+mod tests;
