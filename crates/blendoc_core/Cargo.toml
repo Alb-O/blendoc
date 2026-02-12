@@ -13,5 +13,8 @@ keywords = []
 thiserror = "2.0.11"
 zstd = "0.13.3"
 
+[dev-dependencies]
+blendoc_testkit = { path = "../blendoc_testkit" }
+
 [lints]
 workspace = true

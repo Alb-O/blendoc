@@ -1,6 +1,6 @@
 mod fixtures_day9_xref {
 
-	use std::path::{Path, PathBuf};
+	use blendoc_testkit::fixture_path;
 
 	use crate::blend::{BlendFile, IdIndex, RefScanOptions, XrefOptions, find_inbound_refs_to_ptr, scan_id_blocks};
 
@@ -48,10 +48,6 @@ mod fixtures_day9_xref {
 				.any(|item| item.field.as_ref() == "world" && item.from_id.as_deref().is_some_and(|id| id.starts_with("SC"))),
 			"expected Scene.world inbound edge"
 		);
-	}
-
-	fn fixture_path(name: &str) -> PathBuf {
-		Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("fixtures").join(name)
 	}
 }
 

@@ -1,6 +1,6 @@
 mod fixtures_day4_chase_path {
 
-	use std::path::{Path, PathBuf};
+	use blendoc_testkit::fixture_path;
 
 	use crate::blend::{BlendFile, ChasePolicy, ChaseStopReason, DecodeOptions, FieldPath, Value, chase_from_block_code};
 
@@ -68,16 +68,13 @@ mod fixtures_day4_chase_path {
 		};
 		assert_eq!(item.type_name.as_ref(), "ViewLayer");
 	}
-
-	fn fixture_path(name: &str) -> PathBuf {
-		Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("fixtures").join(name)
-	}
 }
 
 mod fixtures_day6_chase_ids {
 
 	use std::collections::HashMap;
-	use std::path::{Path, PathBuf};
+
+	use blendoc_testkit::fixture_path;
 
 	use crate::blend::{BlendFile, ChaseMeta, ChasePolicy, DecodeOptions, FieldPath, Value, chase_from_ptr, scan_id_blocks};
 
@@ -129,10 +126,6 @@ mod fixtures_day6_chase_ids {
 		let offset = hop.element_index.checked_mul(hop.struct_size)?;
 		let offset = u64::try_from(offset).ok()?;
 		hop.block_old.checked_add(offset)
-	}
-
-	fn fixture_path(name: &str) -> PathBuf {
-		Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("fixtures").join(name)
 	}
 }
 

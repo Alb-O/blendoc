@@ -1,6 +1,6 @@
 mod fixtures_day7_refs {
 
-	use std::path::{Path, PathBuf};
+	use blendoc_testkit::fixture_path;
 
 	use crate::blend::{BlendFile, IdIndex, RefScanOptions, scan_id_blocks, scan_refs_from_ptr};
 
@@ -41,10 +41,6 @@ mod fixtures_day7_refs {
 
 		let id_name = target.id_name.as_deref().expect("world id annotation exists");
 		assert!(id_name.starts_with("WO"), "expected World ID prefix");
-	}
-
-	fn fixture_path(name: &str) -> PathBuf {
-		Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("fixtures").join(name)
 	}
 }
 
@@ -151,7 +147,7 @@ mod pointer_arrays {
 }
 
 mod stable_ids {
-	use std::path::{Path, PathBuf};
+	use blendoc_testkit::fixture_path;
 
 	use crate::blend::{BlendFile, IdIndex, PointerStorage, RefScanOptions, scan_id_blocks, scan_refs_from_ptr};
 
@@ -200,9 +196,5 @@ mod stable_ids {
 				);
 			}
 		}
-	}
-
-	fn fixture_path(name: &str) -> PathBuf {
-		Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("fixtures").join(name)
 	}
 }

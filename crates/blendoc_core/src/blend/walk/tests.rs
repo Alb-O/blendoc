@@ -1,7 +1,8 @@
 mod fixtures_day13_walk {
 
-	use std::path::{Path, PathBuf};
 	use std::sync::Arc;
+
+	use blendoc_testkit::fixture_path;
 
 	use crate::blend::{BlendFile, IdIndex, RefScanOptions, StopMode, WalkOptions, scan_id_blocks, walk_ptr_chain};
 
@@ -45,10 +46,6 @@ mod fixtures_day13_walk {
 		let first = &result.items[0];
 		let id_name = first.id_name.as_deref().expect("first scene item should have id name");
 		assert!(id_name.starts_with("SC"), "expected Scene ID prefix");
-	}
-
-	fn fixture_path(name: &str) -> PathBuf {
-		Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("fixtures").join(name)
 	}
 }
 

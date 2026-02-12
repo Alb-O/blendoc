@@ -1,5 +1,5 @@
 mod fixture_provenance {
-	use std::path::{Path, PathBuf};
+	use blendoc_testkit::fixture_path;
 
 	use crate::blend::{BlendFile, LinkConfidence, scan_id_link_provenance, scan_library_records};
 
@@ -72,9 +72,5 @@ mod fixture_provenance {
 			character.confidence.rank() < sword.confidence.rank(),
 			"local object should have lower link confidence than linked sword object"
 		);
-	}
-
-	fn fixture_path(name: &str) -> PathBuf {
-		Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("fixtures").join(name)
 	}
 }

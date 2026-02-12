@@ -1,6 +1,6 @@
 mod fixtures_day1 {
 
-	use std::path::{Path, PathBuf};
+	use blendoc_testkit::fixture_path;
 
 	use crate::blend::{BlendFile, Compression};
 
@@ -27,9 +27,5 @@ mod fixtures_day1 {
 		assert!(stats.has_dna1, "expected DNA1 block");
 		assert!(stats.has_endb, "expected ENDB block");
 		assert_eq!(stats.last_code, *b"ENDB");
-	}
-
-	fn fixture_path(name: &str) -> PathBuf {
-		Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("fixtures").join(name)
 	}
 }

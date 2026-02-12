@@ -8,6 +8,7 @@ This project is intentionally format-focused. It implements parsing, schema deco
 
 - `crates/blendoc_core`: core library crate (published as `blendoc`).
 - `crates/blendoc_cli`: `blendoc` CLI binary and command wiring.
+- `crates/blendoc_testkit`: shared test helpers for workspace crates.
 - `tools/blendoc_blendfiles_downloader`: fixture downloader utility.
 
 ## Scope and assumptions

@@ -1,6 +1,6 @@
 mod fixtures_day3_decode {
 
-	use std::path::{Path, PathBuf};
+	use blendoc_testkit::fixture_path;
 
 	use crate::blend::{BlendFile, DecodeOptions, Value, decode_block_instances};
 
@@ -46,15 +46,11 @@ mod fixtures_day3_decode {
 			_ => panic!("expected struct-like decode output"),
 		}
 	}
-
-	fn fixture_path(name: &str) -> PathBuf {
-		Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("fixtures").join(name)
-	}
 }
 
 mod fixtures_day3_scene {
 
-	use std::path::{Path, PathBuf};
+	use blendoc_testkit::fixture_path;
 
 	use crate::blend::{BlendFile, DecodeOptions, Value, decode_block_instances};
 
@@ -96,15 +92,11 @@ mod fixtures_day3_scene {
 		assert_eq!(item.type_name.as_ref(), "Scene");
 		assert!(item.fields.len() > 20, "expected many scene fields");
 	}
-
-	fn fixture_path(name: &str) -> PathBuf {
-		Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("fixtures").join(name)
-	}
 }
 
 mod fixtures_day12_show {
 
-	use std::path::{Path, PathBuf};
+	use blendoc_testkit::fixture_path;
 
 	use crate::blend::{BlendFile, DecodeOptions, IdIndex, decode_ptr_instance, scan_id_blocks};
 
@@ -139,9 +131,5 @@ mod fixtures_day12_show {
 
 		assert_eq!(canonical, world.old_ptr);
 		assert_eq!(value.type_name.as_ref(), "World");
-	}
-
-	fn fixture_path(name: &str) -> PathBuf {
-		Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("fixtures").join(name)
 	}
 }

@@ -1,6 +1,6 @@
 mod fixtures_day8_graph {
 
-	use std::path::{Path, PathBuf};
+	use blendoc_testkit::fixture_path;
 
 	use crate::blend::{BlendFile, GraphOptions, RefScanOptions, build_graph_from_ptr, scan_id_blocks};
 
@@ -62,9 +62,5 @@ mod fixtures_day8_graph {
 				.any(|edge| edge.from == scene.old_ptr && edge.to == world.canonical && edge.field.as_ref() == "world"),
 			"expected Scene.world edge"
 		);
-	}
-
-	fn fixture_path(name: &str) -> PathBuf {
-		Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("fixtures").join(name)
 	}
 }

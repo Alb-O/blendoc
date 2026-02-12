@@ -1,11 +1,13 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::{Command, Output};
 use std::sync::OnceLock;
+
+use blendoc_testkit::{fixture_path as shared_fixture_path, target_dir as workspace_target_dir};
 
 static BLENDOC_BIN: OnceLock<PathBuf> = OnceLock::new();
 
 pub(crate) fn fixture_path(name: &str) -> PathBuf {
-	workspace_root().join("fixtures").join(name)
+	shared_fixture_path(name)
 }
 
 pub(crate) fn run_blendoc(args: &[&str]) -> Output {
@@ -33,10 +35,7 @@ fn resolve_blendoc_bin() -> PathBuf {
 	}
 
 	let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-	let workspace = workspace_root();
-	let target_dir = std::env::var_os("CARGO_TARGET_DIR")
-		.map(PathBuf::from)
-		.unwrap_or_else(|| workspace.join("target"));
+	let target_dir = workspace_target_dir();
 
 	let mut bin = target_dir.join("debug");
 	bin.push(if cfg!(windows) { "blendoc.exe" } else { "blendoc" });
@@ -49,13 +48,4 @@ fn resolve_blendoc_bin() -> PathBuf {
 	assert!(status.success(), "failed to build blendoc binary at {}", bin.display());
 
 	bin
-}
-
-fn workspace_root() -> PathBuf {
-	let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-	manifest_dir
-		.join("..")
-		.join("..")
-		.canonicalize()
-		.unwrap_or_else(|_| manifest_dir.join("..").join(".."))
 }

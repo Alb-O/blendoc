@@ -1,6 +1,6 @@
 mod fixtures_day10_route {
 
-	use std::path::{Path, PathBuf};
+	use blendoc_testkit::fixture_path;
 
 	use crate::blend::{BlendFile, IdIndex, RefScanOptions, RouteOptions, find_route_between_ptrs, scan_id_blocks};
 
@@ -56,10 +56,6 @@ mod fixtures_day10_route {
 		assert_eq!(path[0].field.as_ref(), "world");
 		assert_eq!(path[0].from, scene.old_ptr);
 		assert_eq!(path[0].to, world.old_ptr);
-	}
-
-	fn fixture_path(name: &str) -> PathBuf {
-		Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("fixtures").join(name)
 	}
 }
 

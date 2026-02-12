@@ -1,6 +1,6 @@
 mod fixtures_day2_dna {
 
-	use std::path::{Path, PathBuf};
+	use blendoc_testkit::fixture_path;
 
 	use crate::blend::BlendFile;
 
@@ -31,9 +31,5 @@ mod fixtures_day2_dna {
 				assert!((field.name_idx as usize) < dna.names.len(), "field name idx in range");
 			}
 		}
-	}
-
-	fn fixture_path(name: &str) -> PathBuf {
-		Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("fixtures").join(name)
 	}
 }

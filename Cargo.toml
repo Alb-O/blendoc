@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "crates/blendoc_testkit",
     "crates/blendoc_core",
     "crates/blendoc_cli",
     "tools/blendoc_blendfiles_downloader",

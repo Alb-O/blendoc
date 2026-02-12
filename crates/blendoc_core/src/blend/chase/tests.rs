@@ -1,6 +1,6 @@
 mod fixtures_day4_chase_camera {
 
-	use std::path::{Path, PathBuf};
+	use blendoc_testkit::fixture_path;
 
 	use crate::blend::{BlendFile, DecodeOptions, Value, chase_ptr_to_struct, chase_scene_camera, decode_block_instances};
 
@@ -103,9 +103,5 @@ mod fixtures_day4_chase_camera {
 			return None;
 		};
 		Some(ptr)
-	}
-
-	fn fixture_path(name: &str) -> PathBuf {
-		Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("fixtures").join(name)
 	}
 }

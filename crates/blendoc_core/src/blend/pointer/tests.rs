@@ -1,6 +1,6 @@
 mod fixtures_day4_pointers {
 
-	use std::path::{Path, PathBuf};
+	use blendoc_testkit::fixture_path;
 
 	use crate::blend::{BlendFile, PointerStorage};
 
@@ -78,14 +78,10 @@ mod fixtures_day4_pointers {
 			}
 		}
 	}
-
-	fn fixture_path(name: &str) -> PathBuf {
-		Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("fixtures").join(name)
-	}
 }
 
 mod stable_pointer_ids {
-	use std::path::{Path, PathBuf};
+	use blendoc_testkit::fixture_path;
 
 	use crate::blend::{BlendFile, PointerStorage};
 
@@ -115,9 +111,5 @@ mod stable_pointer_ids {
 
 		let inside = index.resolve(entry.start_old + 1);
 		assert!(inside.is_none(), "stable-id mode should not resolve non-exact identifiers");
-	}
-
-	fn fixture_path(name: &str) -> PathBuf {
-		Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("fixtures").join(name)
 	}
 }

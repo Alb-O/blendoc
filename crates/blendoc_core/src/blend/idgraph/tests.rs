@@ -1,6 +1,6 @@
 mod fixtures_day11_idgraph {
 
-	use std::path::{Path, PathBuf};
+	use blendoc_testkit::fixture_path;
 
 	use crate::blend::{BlendFile, IdGraphOptions, IdIndex, RefScanOptions, build_id_graph, scan_id_blocks};
 
@@ -45,9 +45,5 @@ mod fixtures_day11_idgraph {
 				.any(|edge| edge.from == scene.old_ptr && edge.to == world.old_ptr && edge.field.as_ref() == "world"),
 			"expected SCScene -world-> WOWorld edge"
 		);
-	}
-
-	fn fixture_path(name: &str) -> PathBuf {
-		Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..").join("fixtures").join(name)
 	}
 }
