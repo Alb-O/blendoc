@@ -71,8 +71,8 @@ pub fn find_route_between_ptrs<'a>(
 	to_ptr: u64,
 	options: &RouteOptions,
 ) -> Result<RouteResult> {
-	let from = canonicalize_ptr(dna, index, from_ptr)?;
-	let to = canonicalize_ptr(dna, index, to_ptr)?;
+	let from = index.canonicalize_ptr(dna, from_ptr)?;
+	let to = index.canonicalize_ptr(dna, to_ptr)?;
 
 	if from == to {
 		return Ok(RouteResult {
@@ -155,18 +155,6 @@ pub fn find_route_between_ptrs<'a>(
 		visited_edges,
 		truncated,
 	})
-}
-
-fn canonicalize_ptr<'a>(dna: &Dna, index: &PointerIndex<'a>, ptr: u64) -> Result<u64> {
-	if ptr == 0 {
-		return Err(BlendError::ChaseNullPtr);
-	}
-
-	let typed = index.resolve_typed(dna, ptr).ok_or(BlendError::ChaseUnresolvedPtr { ptr })?;
-	if typed.element_index.is_none() {
-		return Err(BlendError::ChasePtrOutOfBounds { ptr });
-	}
-	index.canonical_ptr(dna, ptr).ok_or(BlendError::ChasePtrOutOfBounds { ptr })
 }
 
 fn reconstruct_route(from: u64, to: u64, parents: &HashMap<u64, (u64, Arc<str>)>) -> Result<Vec<RouteEdge>> {

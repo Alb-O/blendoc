@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::blend::{BlendError, Dna, IdIndex, PointerIndex, RefScanOptions, Result, scan_refs_from_ptr};
+use crate::blend::{Dna, IdIndex, PointerIndex, RefScanOptions, Result, scan_refs_from_ptr};
 
 /// One inbound reference into a target canonical pointer.
 #[derive(Debug, Clone)]
@@ -38,11 +38,7 @@ impl Default for XrefOptions {
 
 /// Find inbound references to a canonicalized target pointer.
 pub fn find_inbound_refs_to_ptr<'a>(dna: &Dna, index: &PointerIndex<'a>, ids: &IdIndex, target_ptr: u64, options: &XrefOptions) -> Result<Vec<InboundRef>> {
-	if target_ptr == 0 {
-		return Err(BlendError::ChaseNullPtr);
-	}
-
-	let target_canonical = canonical_ptr_for_target(dna, index, target_ptr)?;
+	let target_canonical = index.canonicalize_ptr(dna, target_ptr)?;
 
 	let mut out = Vec::new();
 	for owner in &ids.records {
@@ -72,14 +68,6 @@ pub fn find_inbound_refs_to_ptr<'a>(dna: &Dna, index: &PointerIndex<'a>, ids: &I
 
 	out.sort_by(|left, right| left.from.cmp(&right.from).then_with(|| left.field.cmp(&right.field)));
 	Ok(out)
-}
-
-fn canonical_ptr_for_target<'a>(dna: &Dna, index: &PointerIndex<'a>, ptr: u64) -> Result<u64> {
-	let typed = index.resolve_typed(dna, ptr).ok_or(BlendError::ChaseUnresolvedPtr { ptr })?;
-	if typed.element_index.is_none() {
-		return Err(BlendError::ChasePtrOutOfBounds { ptr });
-	}
-	index.canonical_ptr(dna, ptr).ok_or(BlendError::ChasePtrOutOfBounds { ptr })
 }
 
 #[cfg(test)]

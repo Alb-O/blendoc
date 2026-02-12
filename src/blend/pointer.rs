@@ -1,4 +1,4 @@
-use crate::blend::{BlendFile, Block, Dna, Result};
+use crate::blend::{BlendError, BlendFile, Block, Dna, Result};
 
 /// Range index for resolving old-memory pointers to blocks.
 #[derive(Debug)]
@@ -128,6 +128,27 @@ impl<'a> PointerIndex<'a> {
 		let offset = element_index.checked_mul(typed.struct_size)?;
 		let offset = u64::try_from(offset).ok()?;
 		typed.base.entry.start_old.checked_add(offset)
+	}
+
+	/// Resolve pointer to typed metadata and canonical pointer with uniform errors.
+	pub fn resolve_canonical_typed(&self, dna: &Dna, ptr: u64) -> Result<(u64, TypedResolvedPtr<'a>)> {
+		if ptr == 0 {
+			return Err(BlendError::ChaseNullPtr);
+		}
+
+		let typed = self.resolve_typed(dna, ptr).ok_or(BlendError::ChaseUnresolvedPtr { ptr })?;
+		if typed.element_index.is_none() {
+			return Err(BlendError::ChasePtrOutOfBounds { ptr });
+		}
+
+		let canonical = self.canonical_ptr(dna, ptr).ok_or(BlendError::ChasePtrOutOfBounds { ptr })?;
+		Ok((canonical, typed))
+	}
+
+	/// Canonicalize pointer with uniform null/unresolved/out-of-bounds errors.
+	pub fn canonicalize_ptr(&self, dna: &Dna, ptr: u64) -> Result<u64> {
+		let (canonical, _) = self.resolve_canonical_typed(dna, ptr)?;
+		Ok(canonical)
 	}
 
 	/// Return all indexed entries in sorted order.

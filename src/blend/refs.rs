@@ -54,11 +54,7 @@ pub struct RefTarget {
 
 /// Scan pointer fields from a resolved struct pointer.
 pub fn scan_refs_from_ptr<'a>(dna: &Dna, index: &PointerIndex<'a>, id_index: &IdIndex, root_ptr: u64, options: &RefScanOptions) -> Result<Vec<RefRecord>> {
-	if root_ptr == 0 {
-		return Err(BlendError::ChaseNullPtr);
-	}
-
-	let typed = index.resolve_typed(dna, root_ptr).ok_or(BlendError::ChaseUnresolvedPtr { ptr: root_ptr })?;
+	let (owner_canonical, typed) = index.resolve_canonical_typed(dna, root_ptr)?;
 	let element_index = typed.element_index.ok_or(BlendError::ChasePtrOutOfBounds { ptr: root_ptr })?;
 
 	let owner_sdna = typed.base.entry.block.head.sdna_nr;
@@ -80,14 +76,6 @@ pub fn scan_refs_from_ptr<'a>(dna: &Dna, index: &PointerIndex<'a>, id_index: &Id
 		size: typed.struct_size,
 		payload: typed.base.payload().len(),
 	})?;
-
-	let owner_offset_u64 = u64::try_from(owner_offset).map_err(|_| BlendError::ChasePtrOutOfBounds { ptr: root_ptr })?;
-	let owner_canonical = typed
-		.base
-		.entry
-		.start_old
-		.checked_add(owner_offset_u64)
-		.ok_or(BlendError::ChasePtrOutOfBounds { ptr: root_ptr })?;
 
 	let mut out = Vec::new();
 	let mut scanner = RefScanner {

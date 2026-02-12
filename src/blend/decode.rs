@@ -95,13 +95,8 @@ pub fn decode_struct_instance(dna: &Dna, sdna_nr: u32, bytes: &[u8], opt: &Decod
 
 /// Resolve a pointer and decode the pointed-to struct element.
 pub fn decode_ptr_instance<'a>(dna: &Dna, index: &PointerIndex<'a>, ptr: u64, opt: &DecodeOptions) -> Result<(u64, StructValue)> {
-	if ptr == 0 {
-		return Err(BlendError::ChaseNullPtr);
-	}
-
-	let typed = index.resolve_typed(dna, ptr).ok_or(BlendError::ChaseUnresolvedPtr { ptr })?;
+	let (canonical, typed) = index.resolve_canonical_typed(dna, ptr)?;
 	let element_index = typed.element_index.ok_or(BlendError::ChasePtrOutOfBounds { ptr })?;
-	let canonical = index.canonical_ptr(dna, ptr).ok_or(BlendError::ChasePtrOutOfBounds { ptr })?;
 
 	let start = element_index.checked_mul(typed.struct_size).ok_or(BlendError::ChaseSliceOob {
 		start: usize::MAX,

@@ -45,15 +45,7 @@ pub fn run(args: Args) -> blendoc::blend::Result<()> {
 		IdOrPtrSelector::Ptr(ptr) => (ptr, format!("ptr:0x{ptr:016x}")),
 	};
 
-	let typed = index
-		.resolve_typed(&dna, target_ptr)
-		.ok_or(BlendError::ChaseUnresolvedPtr { ptr: target_ptr })?;
-	if typed.element_index.is_none() {
-		return Err(BlendError::ChasePtrOutOfBounds { ptr: target_ptr });
-	}
-	let target_canonical = index
-		.canonical_ptr(&dna, target_ptr)
-		.ok_or(BlendError::ChasePtrOutOfBounds { ptr: target_ptr })?;
+	let (target_canonical, typed) = index.resolve_canonical_typed(&dna, target_ptr)?;
 	let target_type = dna
 		.struct_by_sdna(typed.base.entry.block.head.sdna_nr)
 		.map(|item| dna.type_name(item.type_idx))

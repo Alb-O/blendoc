@@ -145,8 +145,7 @@ struct NodeMeta {
 }
 
 fn resolve_node_meta<'a>(dna: &blendoc::blend::Dna, index: &blendoc::blend::PointerIndex<'a>, ids: &IdIndex, ptr: u64) -> blendoc::blend::Result<NodeMeta> {
-	let typed = index.resolve_typed(dna, ptr).ok_or(BlendError::ChaseUnresolvedPtr { ptr })?;
-	let canonical = index.canonical_ptr(dna, ptr).ok_or(BlendError::ChasePtrOutOfBounds { ptr })?;
+	let (canonical, typed) = index.resolve_canonical_typed(dna, ptr)?;
 
 	let type_name = dna
 		.struct_by_sdna(typed.base.entry.block.head.sdna_nr)

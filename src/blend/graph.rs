@@ -182,11 +182,7 @@ pub fn build_graph_from_ptr<'a>(dna: &Dna, index: &PointerIndex<'a>, ids: &IdInd
 }
 
 fn resolve_graph_node<'a>(dna: &Dna, index: &PointerIndex<'a>, ids: &IdIndex, ptr: u64) -> Result<GraphNode> {
-	let typed = index.resolve_typed(dna, ptr).ok_or(BlendError::ChaseUnresolvedPtr { ptr })?;
-	if typed.element_index.is_none() {
-		return Err(BlendError::ChasePtrOutOfBounds { ptr });
-	}
-	let canonical = index.canonical_ptr(dna, ptr).ok_or(BlendError::ChasePtrOutOfBounds { ptr })?;
+	let (canonical, typed) = index.resolve_canonical_typed(dna, ptr)?;
 
 	let type_name = dna
 		.struct_by_sdna(typed.base.entry.block.head.sdna_nr)
