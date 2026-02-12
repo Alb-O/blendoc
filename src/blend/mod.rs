@@ -4,14 +4,19 @@ mod bytes;
 mod chase;
 mod chase_path;
 mod compression;
+mod decl;
 mod decode;
 mod dna;
 mod error;
 mod file;
+mod graph;
 mod header;
+mod id;
 mod path;
 mod pointer;
+mod refs;
 mod value;
+mod xref;
 
 /// Parsed block header record.
 pub use bhead::BHead;
@@ -31,11 +36,19 @@ pub use dna::{Dna, DnaField, DnaStruct};
 pub use error::{BlendError, Result};
 /// File abstraction and block statistics.
 pub use file::{BlendFile, BlockStats};
+/// Graph extraction types and entry points.
+pub use graph::{GraphEdge, GraphNode, GraphOptions, GraphResult, GraphTruncation, build_graph_from_ptr};
 /// File header representation.
 pub use header::BlendHeader;
+/// ID-root block scan output and helpers.
+pub use id::{IdIndex, IdRecord, scan_id_blocks};
 /// Field path parser types.
 pub use path::{FieldPath, PathStep};
 /// Pointer index and resolution types.
 pub use pointer::{PointerIndex, PtrEntry, ResolvedPtr, TypedResolvedPtr};
+/// Pointer-reference scan output and options.
+pub use refs::{RefRecord, RefScanOptions, RefTarget, scan_refs_from_ptr};
 /// Decoded runtime value types.
 pub use value::{FieldValue, StructValue, Value};
+/// Inbound reference query types and entry points.
+pub use xref::{InboundRef, XrefOptions, find_inbound_refs_to_ptr};

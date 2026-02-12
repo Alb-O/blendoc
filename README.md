@@ -96,6 +96,26 @@ All commands are under the `blendoc` binary:
 - `blendoc camera <file>`
   - one-step chase from scene camera pointer to target object (if non-null/resolvable).
 
+- `blendoc ids <file> [--code <CODE>] [--type <StructName>] [--limit <N>] [--json]`
+  - scan ID-root blocks and print `ID.name` plus useful ID header pointers.
+  - optional filtering by block code or derived struct type.
+
+- `blendoc chase <file> (--code <CODE> | --ptr <HEX> | --id <IDNAME>) --path <FIELD.PATH> [--json]`
+  - run generic field-path chase with hop-by-hop pointer trace.
+  - hop output includes resolved type metadata and ID-name annotation when available.
+
+- `blendoc refs <file> (--code <CODE> | --ptr <HEX> | --id <IDNAME>) [--depth <N>] [--limit <N>] [--json]`
+  - scan pointer-valued fields from one root struct and attempt pointer resolution.
+  - includes canonical target metadata and ID-name annotations when available.
+
+- `blendoc graph <file> (--code <CODE> | --ptr <HEX> | --id <IDNAME>) [--depth <N>] [--refs-depth <N>] [--max-nodes <N>] [--max-edges <N>] [--id-only] [--dot] [--json]`
+  - build a shallow pointer graph from one root pointer with BFS limits.
+  - supports text, Graphviz DOT, and JSON output formats.
+
+- `blendoc xref <file> (--id <IDNAME> | --ptr <HEX>) [--refs-depth <N>] [--limit <N>] [--json]`
+  - find inbound references to a target canonical pointer.
+  - reports owner ID/type and pointer field path for each inbound edge.
+
 Examples:
 
 ```bash
@@ -104,6 +124,10 @@ nix develop -c cargo run -- dna fixtures/character.blend --struct Scene
 nix develop -c cargo run -- decode fixtures/character.blend --code GLOB
 nix develop -c cargo run -- scene fixtures/character.blend
 nix develop -c cargo run -- camera fixtures/character.blend
+nix develop -c cargo run -- chase fixtures/character.blend --code SC --path world
+nix develop -c cargo run -- refs fixtures/character.blend --id SCScene --depth 1
+nix develop -c cargo run -- graph fixtures/character.blend --id SCScene --depth 1 --refs-depth 1
+nix develop -c cargo run -- xref fixtures/character.blend --id WOWorld --limit 10
 ```
 
 ## Library entry points
@@ -120,6 +144,10 @@ Core entry points:
 - `chase_ptr_to_struct(...)`
 - `chase_from_block_code(...)`, `chase_from_ptr(...)`
 - `FieldPath::parse(...)`
+- `scan_id_blocks(...)`
+- `scan_refs_from_ptr(...)`
+- `build_graph_from_ptr(...)`
+- `find_inbound_refs_to_ptr(...)`
 
 Minimal usage sketch:
 

@@ -33,6 +33,12 @@ pub enum BlendError {
 		/// Parsed Blender version digits.
 		version: u16,
 	},
+	/// Unsupported pointer-size/layout marker.
+	#[error("unsupported pointer size/layout marker (header_size={header_size}, expected 17)")]
+	UnsupportedPointerSize {
+		/// Parsed header-size marker.
+		header_size: usize,
+	},
 	/// Invalid or malformed file header.
 	#[error("invalid header")]
 	InvalidHeader,
@@ -103,6 +109,21 @@ pub enum BlendError {
 		/// Requested struct name.
 		name: String,
 	},
+	/// Decoded `ID` header was missing the `name` field.
+	#[error("ID header missing name field")]
+	IdMissingName,
+	/// Decoded `ID.name` field had an unexpected runtime type.
+	#[error("ID header name field type mismatch: got {got}")]
+	IdInvalidNameType {
+		/// Runtime value kind observed for `ID.name`.
+		got: String,
+	},
+	/// Requested `ID.name` entry was not found.
+	#[error("ID record not found: {name}")]
+	IdRecordNotFound {
+		/// Requested ID name.
+		name: String,
+	},
 	/// Duplicate type->struct mapping in DNA `STRC` section.
 	#[error("DNA duplicate struct type index {type_idx}: first={first}, second={second}")]
 	DnaDuplicateStructType {
@@ -124,6 +145,15 @@ pub enum BlendError {
 	InvalidBlockCode {
 		/// User-provided code string.
 		code: String,
+	},
+	/// CLI chase root selector combination was invalid.
+	#[error("invalid chase root selector (provide exactly one of --code, --ptr, --id)")]
+	InvalidChaseRoot,
+	/// CLI pointer argument was invalid.
+	#[error("invalid pointer literal: {value}")]
+	InvalidPointerLiteral {
+		/// User-provided pointer literal.
+		value: String,
 	},
 	/// Decoder recursion depth exceeded configured limit.
 	#[error("decode depth exceeded (max={max_depth})")]

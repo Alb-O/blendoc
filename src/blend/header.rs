@@ -26,6 +26,9 @@ impl BlendHeader {
 		if header_size < Self::MIN_SIZE {
 			return Err(BlendError::InvalidHeader);
 		}
+		if header_size != Self::MIN_SIZE {
+			return Err(BlendError::UnsupportedPointerSize { header_size });
+		}
 
 		if bytes.len() < header_size {
 			return Err(BlendError::UnexpectedEof {
@@ -74,4 +77,23 @@ fn parse_digits(bytes: &[u8]) -> Option<u16> {
 		value = value * 10 + u16::from(*byte - b'0');
 	}
 	Some(value)
+}
+
+#[cfg(test)]
+mod tests {
+	use crate::blend::{BlendError, BlendHeader};
+
+	#[test]
+	fn parses_large_bhead8_header() {
+		let header = BlendHeader::parse(b"BLENDER17-01v0500").expect("header parses");
+		assert_eq!(header.header_size, 17);
+		assert_eq!(header.format_version, 1);
+		assert_eq!(header.version, 500);
+	}
+
+	#[test]
+	fn rejects_non_large_bhead8_header_size_marker() {
+		let err = BlendHeader::parse(b"BLENDER18-01v0500X").expect_err("non-17 size marker should fail");
+		assert!(matches!(err, BlendError::UnsupportedPointerSize { header_size: 18 }));
+	}
 }
