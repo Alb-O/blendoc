@@ -40,14 +40,12 @@ fn resolve_blendoc_bin() -> PathBuf {
 	let mut bin = target_dir.join("debug");
 	bin.push(if cfg!(windows) { "blendoc.exe" } else { "blendoc" });
 
-	if !bin.is_file() {
-		let status = Command::new("cargo")
-			.current_dir(&manifest_dir)
-			.args(["build", "--quiet", "--bin", "blendoc"])
-			.status()
-			.expect("cargo build executes");
-		assert!(status.success(), "failed to build blendoc binary at {}", bin.display());
-	}
+	let status = Command::new("cargo")
+		.current_dir(&manifest_dir)
+		.args(["build", "--quiet", "--bin", "blendoc"])
+		.status()
+		.expect("cargo build executes");
+	assert!(status.success(), "failed to build blendoc binary at {}", bin.display());
 
 	bin
 }
