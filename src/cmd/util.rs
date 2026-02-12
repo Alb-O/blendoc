@@ -88,40 +88,23 @@ pub(crate) fn render_code(code: [u8; 4]) -> String {
 	if out.is_empty() { "....".to_owned() } else { out }
 }
 
-/// Escape text for embedding in JSON string values.
-pub(crate) fn json_escape(input: &str) -> String {
-	let mut out = String::with_capacity(input.len());
-	for ch in input.chars() {
-		match ch {
-			'"' => out.push_str("\\\""),
-			'\\' => out.push_str("\\\\"),
-			'\n' => out.push_str("\\n"),
-			'\r' => out.push_str("\\r"),
-			'\t' => out.push_str("\\t"),
-			c if c.is_control() => out.push_str(&format!("\\u{:04x}", c as u32)),
-			c => out.push(c),
-		}
-	}
-	out
-}
-
-/// Render optional string as JSON value.
-pub(crate) fn str_json(value: Option<&str>) -> String {
-	match value {
-		Some(item) => format!("\"{item}\""),
-		None => "null".to_owned(),
-	}
-}
-
-/// Render optional pointer as JSON value.
-pub(crate) fn ptr_json(value: Option<u64>) -> String {
-	match value {
-		Some(ptr) => format!("\"0x{ptr:016x}\""),
-		None => "null".to_owned(),
-	}
-}
-
 /// Escape text for Graphviz DOT label values.
 pub(crate) fn dot_escape(input: &str) -> String {
 	input.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+/// Render pointer as fixed-width hex string.
+pub(crate) fn ptr_hex(value: u64) -> String {
+	format!("0x{value:016x}")
+}
+
+/// Render optional pointer as optional fixed-width hex string.
+pub(crate) fn ptr_hex_opt(value: Option<u64>) -> Option<String> {
+	value.map(ptr_hex)
+}
+
+/// Pretty-print any serializable value as JSON.
+pub(crate) fn emit_json<T: serde::Serialize>(value: &T) {
+	let rendered = serde_json::to_string_pretty(value).expect("json serialization should succeed");
+	println!("{rendered}");
 }

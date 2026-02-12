@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use blendoc::blend::{BlendError, BlendFile, IdIndex, RouteOptions, RouteResult, RouteTruncation, find_route_between_ptrs, scan_id_blocks};
 
-use crate::cmd::util::{IdOrPtrSelector, RootSelector, json_escape, parse_id_or_ptr_selector, parse_root_selector, render_code, str_json};
+use crate::cmd::util::{IdOrPtrSelector, RootSelector, emit_json, parse_id_or_ptr_selector, parse_root_selector, ptr_hex, render_code};
 
 #[derive(clap::Args)]
 pub struct Args {
@@ -186,36 +186,62 @@ fn truncation_label(value: RouteTruncation) -> &'static str {
 }
 
 fn print_json(path: &std::path::Path, from_label: &str, to_label: &str, from: &NodeMeta, to: &NodeMeta, result: &RouteResult) {
-	println!("{{");
-	println!("  \"path\": \"{}\",", json_escape(&path.display().to_string()));
-	println!("  \"from\": {{");
-	println!("    \"selector\": \"{}\",", json_escape(from_label));
-	println!("    \"canonical\": \"0x{:016x}\",", from.canonical);
-	println!("    \"type\": \"{}\",", json_escape(&from.type_name));
-	println!("    \"id\": {}", str_json(from.id_name.as_deref().map(json_escape).as_deref()));
-	println!("  }},");
-	println!("  \"to\": {{");
-	println!("    \"selector\": \"{}\",", json_escape(to_label));
-	println!("    \"canonical\": \"0x{:016x}\",", to.canonical);
-	println!("    \"type\": \"{}\",", json_escape(&to.type_name));
-	println!("    \"id\": {}", str_json(to.id_name.as_deref().map(json_escape).as_deref()));
-	println!("  }},");
-	println!("  \"visited_nodes\": {},", result.visited_nodes);
-	println!("  \"visited_edges\": {},", result.visited_edges);
-	println!("  \"truncated\": {},", str_json(result.truncated.map(truncation_label)));
-	println!("  \"path_edges\": [");
-	if let Some(path_edges) = &result.path {
-		for (idx, edge) in path_edges.iter().enumerate() {
-			let comma = if idx + 1 == path_edges.len() { "" } else { "," };
-			println!(
-				"    {{\"from\":\"0x{:016x}\",\"to\":\"0x{:016x}\",\"field\":\"{}\"}}{}",
-				edge.from,
-				edge.to,
-				json_escape(&edge.field),
-				comma,
-			);
-		}
-	}
-	println!("  ]");
-	println!("}}");
+	let payload = RouteJson {
+		path: path.display().to_string(),
+		from: EndpointJson {
+			selector: from_label.to_owned(),
+			canonical: ptr_hex(from.canonical),
+			type_name: from.type_name.clone(),
+			id: from.id_name.clone(),
+		},
+		to: EndpointJson {
+			selector: to_label.to_owned(),
+			canonical: ptr_hex(to.canonical),
+			type_name: to.type_name.clone(),
+			id: to.id_name.clone(),
+		},
+		visited_nodes: result.visited_nodes,
+		visited_edges: result.visited_edges,
+		truncated: result.truncated.map(truncation_label).map(str::to_owned),
+		path_edges: result
+			.path
+			.as_deref()
+			.unwrap_or(&[])
+			.iter()
+			.map(|edge| RouteEdgeJson {
+				from: ptr_hex(edge.from),
+				to: ptr_hex(edge.to),
+				field: edge.field.to_string(),
+			})
+			.collect(),
+	};
+
+	emit_json(&payload);
+}
+
+#[derive(serde::Serialize)]
+struct EndpointJson {
+	selector: String,
+	canonical: String,
+	#[serde(rename = "type")]
+	type_name: String,
+	id: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+struct RouteEdgeJson {
+	from: String,
+	to: String,
+	field: String,
+}
+
+#[derive(serde::Serialize)]
+struct RouteJson {
+	path: String,
+	from: EndpointJson,
+	to: EndpointJson,
+	visited_nodes: usize,
+	visited_edges: usize,
+	truncated: Option<String>,
+	path_edges: Vec<RouteEdgeJson>,
 }

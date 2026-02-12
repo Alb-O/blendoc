@@ -5,7 +5,7 @@ use blendoc::blend::{
 	chase_from_ptr, scan_id_blocks,
 };
 
-use crate::cmd::util::{RootSelector, json_escape, parse_root_selector, ptr_json, render_code, str_json};
+use crate::cmd::util::{RootSelector, emit_json, parse_root_selector, ptr_hex, ptr_hex_opt, render_code};
 
 #[derive(clap::Args)]
 pub struct Args {
@@ -239,47 +239,84 @@ fn format_ptr_opt(ptr: Option<u64>) -> String {
 }
 
 fn print_json(path: &std::path::Path, root: &RootInfo, path_expr: &str, hops: &[HopTrace], result: &ChaseResult) {
-	println!("{{");
-	println!("  \"path\": \"{}\",", json_escape(&path.display().to_string()));
-	println!("  \"root\": {{");
-	println!("    \"selector\": \"{}\",", json_escape(&root.selector));
-	println!("    \"ptr\": {},", ptr_json(root.ptr));
-	println!("    \"type\": {},", str_json(root.type_name.as_deref().map(json_escape).as_deref()));
-	println!("    \"id_name\": {}", str_json(root.id_name.as_deref().map(json_escape).as_deref()));
-	println!("  }},");
-	println!("  \"path_expr\": \"{}\",", json_escape(path_expr));
-	println!("  \"hops\": [");
-	for (idx, hop) in hops.iter().enumerate() {
-		let comma = if idx + 1 == hops.len() { "" } else { "," };
-		println!(
-			"    {{\"index\":{},\"ptr\":\"0x{:016x}\",\"canonical\":{},\"code\":\"{}\",\"sdna_nr\":{},\"type\":\"{}\",\"id_name\":{}}}{}",
-			hop.index,
-			hop.ptr,
-			ptr_json(hop.canonical),
-			json_escape(&render_code(hop.code)),
-			hop.sdna_nr,
-			json_escape(&hop.type_name),
-			str_json(hop.id_name.as_deref().map(json_escape).as_deref()),
-			comma,
-		);
-	}
-	println!("  ],");
-	println!("  \"result\": {{");
-	println!("    \"kind\": \"{}\",", value_kind(&result.value));
-	if let Value::Struct(item) = &result.value {
-		println!("    \"type\": \"{}\"", json_escape(&item.type_name));
-	} else {
-		println!("    \"type\": null");
-	}
-	println!("  }},");
-	if let Some(stop) = &result.stop {
-		println!(
-			"  \"stop\": {{\"step\":{},\"reason\":\"{}\"}}",
-			stop.step_index,
-			json_escape(&format_stop_reason(&stop.reason))
-		);
-	} else {
-		println!("  \"stop\": null");
-	}
-	println!("}}");
+	let payload = ChaseJson {
+		path: path.display().to_string(),
+		root: RootJson {
+			selector: root.selector.clone(),
+			ptr: ptr_hex_opt(root.ptr),
+			type_name: root.type_name.clone(),
+			id_name: root.id_name.clone(),
+		},
+		path_expr: path_expr.to_owned(),
+		hops: hops
+			.iter()
+			.map(|hop| HopJson {
+				index: hop.index,
+				ptr: ptr_hex(hop.ptr),
+				canonical: ptr_hex_opt(hop.canonical),
+				code: render_code(hop.code),
+				sdna_nr: hop.sdna_nr,
+				type_name: hop.type_name.clone(),
+				id_name: hop.id_name.clone(),
+			})
+			.collect(),
+		result: ResultJson {
+			kind: value_kind(&result.value).to_owned(),
+			type_name: if let Value::Struct(item) = &result.value {
+				Some(item.type_name.to_string())
+			} else {
+				None
+			},
+		},
+		stop: result.stop.as_ref().map(|stop| StopJson {
+			step: stop.step_index,
+			reason: format_stop_reason(&stop.reason),
+		}),
+	};
+
+	emit_json(&payload);
+}
+
+#[derive(serde::Serialize)]
+struct RootJson {
+	selector: String,
+	ptr: Option<String>,
+	#[serde(rename = "type")]
+	type_name: Option<String>,
+	id_name: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+struct HopJson {
+	index: usize,
+	ptr: String,
+	canonical: Option<String>,
+	code: String,
+	sdna_nr: u32,
+	#[serde(rename = "type")]
+	type_name: String,
+	id_name: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+struct ResultJson {
+	kind: String,
+	#[serde(rename = "type")]
+	type_name: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+struct StopJson {
+	step: usize,
+	reason: String,
+}
+
+#[derive(serde::Serialize)]
+struct ChaseJson {
+	path: String,
+	root: RootJson,
+	path_expr: String,
+	hops: Vec<HopJson>,
+	result: ResultJson,
+	stop: Option<StopJson>,
 }

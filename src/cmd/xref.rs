@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use blendoc::blend::{BlendError, BlendFile, IdIndex, XrefOptions, find_inbound_refs_to_ptr, scan_id_blocks};
 
-use crate::cmd::util::{IdOrPtrSelector, json_escape, parse_id_or_ptr_selector, str_json};
+use crate::cmd::util::{IdOrPtrSelector, emit_json, parse_id_or_ptr_selector, ptr_hex};
 
 #[derive(clap::Args)]
 pub struct Args {
@@ -95,24 +95,40 @@ fn print_json(
 	target_id: Option<&str>,
 	refs: &[blendoc::blend::InboundRef],
 ) {
-	println!("{{");
-	println!("  \"path\": \"{}\",", json_escape(&path.display().to_string()));
-	println!("  \"target\": \"{}\",", json_escape(target_label));
-	println!("  \"target_canonical\": \"0x{target_canonical:016x}\",");
-	println!("  \"target_type\": \"{}\",", json_escape(target_type));
-	println!("  \"target_id\": {},", str_json(target_id.map(json_escape).as_deref()));
-	println!("  \"inbound\": [");
-	for (idx, inbound) in refs.iter().enumerate() {
-		let comma = if idx + 1 == refs.len() { "" } else { "," };
-		println!(
-			"    {{\"from\":\"0x{:016x}\",\"from_type\":\"{}\",\"from_id\":{},\"field\":\"{}\"}}{}",
-			inbound.from,
-			json_escape(&inbound.from_type),
-			str_json(inbound.from_id.as_deref().map(json_escape).as_deref()),
-			json_escape(&inbound.field),
-			comma,
-		);
-	}
-	println!("  ]");
-	println!("}}");
+	let payload = XrefJson {
+		path: path.display().to_string(),
+		target: target_label.to_owned(),
+		target_canonical: ptr_hex(target_canonical),
+		target_type: target_type.to_owned(),
+		target_id: target_id.map(str::to_owned),
+		inbound: refs
+			.iter()
+			.map(|inbound| InboundJson {
+				from: ptr_hex(inbound.from),
+				from_type: inbound.from_type.to_string(),
+				from_id: inbound.from_id.as_deref().map(|item| item.to_string()),
+				field: inbound.field.to_string(),
+			})
+			.collect(),
+	};
+
+	emit_json(&payload);
+}
+
+#[derive(serde::Serialize)]
+struct InboundJson {
+	from: String,
+	from_type: String,
+	from_id: Option<String>,
+	field: String,
+}
+
+#[derive(serde::Serialize)]
+struct XrefJson {
+	path: String,
+	target: String,
+	target_canonical: String,
+	target_type: String,
+	target_id: Option<String>,
+	inbound: Vec<InboundJson>,
 }

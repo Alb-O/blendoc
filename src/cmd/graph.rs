@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use blendoc::blend::{BlendError, BlendFile, GraphOptions, GraphResult, GraphTruncation, IdIndex, build_graph_from_ptr, scan_id_blocks};
 
-use crate::cmd::util::{RootSelector, dot_escape, json_escape, parse_root_selector, render_code, str_json};
+use crate::cmd::util::{RootSelector, dot_escape, emit_json, parse_root_selector, ptr_hex, render_code};
 
 #[derive(clap::Args)]
 pub struct Args {
@@ -130,38 +130,34 @@ fn print_dot(graph: &GraphResult) {
 }
 
 fn print_json(path: &std::path::Path, root_label: &str, root_ptr: u64, graph: &GraphResult) {
-	println!("{{");
-	println!("  \"path\": \"{}\",", json_escape(&path.display().to_string()));
-	println!("  \"root\": \"{}\",", json_escape(root_label));
-	println!("  \"root_ptr\": \"0x{root_ptr:016x}\",");
-	println!("  \"truncated\": {},", truncation_json(graph.truncated));
-	println!("  \"nodes\": [");
-	for (idx, node) in graph.nodes.iter().enumerate() {
-		let comma = if idx + 1 == graph.nodes.len() { "" } else { "," };
-		println!(
-			"    {{\"canonical\":\"0x{:016x}\",\"code\":\"{}\",\"sdna_nr\":{},\"type\":\"{}\",\"id\":{}}}{}",
-			node.canonical,
-			json_escape(&render_code(node.code)),
-			node.sdna_nr,
-			json_escape(&node.type_name),
-			str_json(node.id_name.as_deref().map(json_escape).as_deref()),
-			comma,
-		);
-	}
-	println!("  ],");
-	println!("  \"edges\": [");
-	for (idx, edge) in graph.edges.iter().enumerate() {
-		let comma = if idx + 1 == graph.edges.len() { "" } else { "," };
-		println!(
-			"    {{\"from\":\"0x{:016x}\",\"to\":\"0x{:016x}\",\"field\":\"{}\"}}{}",
-			edge.from,
-			edge.to,
-			json_escape(&edge.field),
-			comma,
-		);
-	}
-	println!("  ]");
-	println!("}}");
+	let payload = GraphJson {
+		path: path.display().to_string(),
+		root: root_label.to_owned(),
+		root_ptr: ptr_hex(root_ptr),
+		truncated: truncation_value(graph.truncated).map(str::to_owned),
+		nodes: graph
+			.nodes
+			.iter()
+			.map(|node| GraphNodeJson {
+				canonical: ptr_hex(node.canonical),
+				code: render_code(node.code),
+				sdna_nr: node.sdna_nr,
+				type_name: node.type_name.to_string(),
+				id: node.id_name.as_deref().map(|item| item.to_string()),
+			})
+			.collect(),
+		edges: graph
+			.edges
+			.iter()
+			.map(|edge| GraphEdgeJson {
+				from: ptr_hex(edge.from),
+				to: ptr_hex(edge.to),
+				field: edge.field.to_string(),
+			})
+			.collect(),
+	};
+
+	emit_json(&payload);
 }
 
 fn node_label(node: Option<&blendoc::blend::GraphNode>) -> String {
@@ -185,11 +181,38 @@ fn truncation_label(value: Option<GraphTruncation>) -> &'static str {
 	}
 }
 
-fn truncation_json(value: Option<GraphTruncation>) -> &'static str {
+fn truncation_value(value: Option<GraphTruncation>) -> Option<&'static str> {
 	match value {
-		Some(GraphTruncation::MaxDepth) => "\"max_depth\"",
-		Some(GraphTruncation::MaxNodes) => "\"max_nodes\"",
-		Some(GraphTruncation::MaxEdges) => "\"max_edges\"",
-		None => "null",
+		Some(GraphTruncation::MaxDepth) => Some("max_depth"),
+		Some(GraphTruncation::MaxNodes) => Some("max_nodes"),
+		Some(GraphTruncation::MaxEdges) => Some("max_edges"),
+		None => None,
 	}
+}
+
+#[derive(serde::Serialize)]
+struct GraphJson {
+	path: String,
+	root: String,
+	root_ptr: String,
+	truncated: Option<String>,
+	nodes: Vec<GraphNodeJson>,
+	edges: Vec<GraphEdgeJson>,
+}
+
+#[derive(serde::Serialize)]
+struct GraphNodeJson {
+	canonical: String,
+	code: String,
+	sdna_nr: u32,
+	#[serde(rename = "type")]
+	type_name: String,
+	id: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+struct GraphEdgeJson {
+	from: String,
+	to: String,
+	field: String,
 }

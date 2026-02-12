@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use blendoc::blend::{BlendFile, IdRecord, Result, scan_id_blocks};
 
-use crate::cmd::util::{json_escape, parse_block_code, ptr_json, render_code};
+use crate::cmd::util::{emit_json, parse_block_code, ptr_hex, ptr_hex_opt, render_code};
 
 #[derive(clap::Args)]
 pub struct Args {
@@ -74,27 +74,38 @@ pub fn run(args: Args) -> Result<()> {
 
 fn format_ptr(value: Option<u64>) -> String {
 	match value {
-		Some(ptr) => format!("0x{ptr:016x}"),
+		Some(ptr) => ptr_hex(ptr),
 		None => "-".to_owned(),
 	}
 }
 
+#[derive(serde::Serialize)]
+struct IdRowJson {
+	old_ptr: String,
+	code: String,
+	sdna_nr: u32,
+	#[serde(rename = "type")]
+	type_name: String,
+	id_name: String,
+	next: Option<String>,
+	prev: Option<String>,
+	lib: Option<String>,
+}
+
 fn print_json_rows(rows: &[IdRecord]) {
-	println!("[");
-	for (idx, row) in rows.iter().enumerate() {
-		let comma = if idx + 1 == rows.len() { "" } else { "," };
-		println!(
-			"  {{\"old_ptr\":\"0x{:016x}\",\"code\":\"{}\",\"sdna_nr\":{},\"type\":\"{}\",\"id_name\":\"{}\",\"next\":{},\"prev\":{},\"lib\":{}}}{}",
-			row.old_ptr,
-			json_escape(&render_code(row.code)),
-			row.sdna_nr,
-			json_escape(&row.type_name),
-			json_escape(&row.id_name),
-			ptr_json(row.next),
-			ptr_json(row.prev),
-			ptr_json(row.lib),
-			comma,
-		);
-	}
-	println!("]");
+	let body: Vec<IdRowJson> = rows
+		.iter()
+		.map(|row| IdRowJson {
+			old_ptr: ptr_hex(row.old_ptr),
+			code: render_code(row.code),
+			sdna_nr: row.sdna_nr,
+			type_name: row.type_name.to_string(),
+			id_name: row.id_name.to_string(),
+			next: ptr_hex_opt(row.next),
+			prev: ptr_hex_opt(row.prev),
+			lib: ptr_hex_opt(row.lib),
+		})
+		.collect();
+
+	emit_json(&body);
 }

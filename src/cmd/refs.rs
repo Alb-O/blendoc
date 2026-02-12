@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use blendoc::blend::{BlendError, BlendFile, IdIndex, RefRecord, RefScanOptions, scan_id_blocks, scan_refs_from_ptr};
 
-use crate::cmd::util::{RootSelector, json_escape, parse_root_selector, render_code, str_json};
+use crate::cmd::util::{RootSelector, emit_json, parse_root_selector, ptr_hex, render_code};
 
 #[derive(clap::Args)]
 pub struct Args {
@@ -95,34 +95,57 @@ pub fn run(args: Args) -> blendoc::blend::Result<()> {
 }
 
 fn print_json(path: &std::path::Path, root_label: &str, root_ptr: u64, refs: &[RefRecord]) {
-	println!("{{");
-	println!("  \"path\": \"{}\",", json_escape(&path.display().to_string()));
-	println!("  \"root\": \"{}\",", json_escape(root_label));
-	println!("  \"root_ptr\": \"0x{root_ptr:016x}\",");
-	println!("  \"refs\": [");
-	for (idx, record) in refs.iter().enumerate() {
-		let comma = if idx + 1 == refs.len() { "" } else { "," };
-		if let Some(target) = &record.resolved {
-			println!(
-				"    {{\"field\":\"{}\",\"ptr\":\"0x{:016x}\",\"canonical\":\"0x{:016x}\",\"code\":\"{}\",\"sdna_nr\":{},\"type\":\"{}\",\"id\":{}}}{}",
-				json_escape(&record.field),
-				record.ptr,
-				target.canonical,
-				json_escape(&render_code(target.code)),
-				target.sdna_nr,
-				json_escape(&target.type_name),
-				str_json(target.id_name.as_deref().map(json_escape).as_deref()),
-				comma,
-			);
-		} else {
-			println!(
-				"    {{\"field\":\"{}\",\"ptr\":\"0x{:016x}\",\"canonical\":null,\"code\":null,\"sdna_nr\":null,\"type\":null,\"id\":null}}{}",
-				json_escape(&record.field),
-				record.ptr,
-				comma,
-			);
-		}
-	}
-	println!("  ]");
-	println!("}}");
+	let payload = RefsJson {
+		path: path.display().to_string(),
+		root: root_label.to_owned(),
+		root_ptr: ptr_hex(root_ptr),
+		refs: refs
+			.iter()
+			.map(|record| {
+				if let Some(target) = &record.resolved {
+					RefJson {
+						field: record.field.to_string(),
+						ptr: ptr_hex(record.ptr),
+						canonical: Some(ptr_hex(target.canonical)),
+						code: Some(render_code(target.code)),
+						sdna_nr: Some(target.sdna_nr),
+						type_name: Some(target.type_name.to_string()),
+						id: target.id_name.as_deref().map(|item| item.to_string()),
+					}
+				} else {
+					RefJson {
+						field: record.field.to_string(),
+						ptr: ptr_hex(record.ptr),
+						canonical: None,
+						code: None,
+						sdna_nr: None,
+						type_name: None,
+						id: None,
+					}
+				}
+			})
+			.collect(),
+	};
+
+	emit_json(&payload);
+}
+
+#[derive(serde::Serialize)]
+struct RefsJson {
+	path: String,
+	root: String,
+	root_ptr: String,
+	refs: Vec<RefJson>,
+}
+
+#[derive(serde::Serialize)]
+struct RefJson {
+	field: String,
+	ptr: String,
+	canonical: Option<String>,
+	code: Option<String>,
+	sdna_nr: Option<u32>,
+	#[serde(rename = "type")]
+	type_name: Option<String>,
+	id: Option<String>,
 }

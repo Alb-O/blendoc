@@ -5,7 +5,7 @@ use blendoc::blend::{
 	walk_ptr_chain,
 };
 
-use crate::cmd::util::{RootSelector, json_escape, parse_root_selector, render_code, str_json};
+use crate::cmd::util::{RootSelector, emit_json, parse_root_selector, ptr_hex, render_code};
 
 #[derive(clap::Args)]
 pub struct Args {
@@ -165,34 +165,55 @@ fn stop_reason_label(reason: &WalkStopReason) -> String {
 }
 
 fn print_json(path: &std::path::Path, root_label: &str, start_ptr: u64, next_field: &str, result: &blendoc::blend::WalkResult) {
-	println!("{{");
-	println!("  \"path\": \"{}\",", json_escape(&path.display().to_string()));
-	println!("  \"root\": \"{}\",", json_escape(root_label));
-	println!("  \"start_ptr\": \"0x{start_ptr:016x}\",",);
-	println!("  \"next_field\": \"{}\",", json_escape(next_field));
-	println!("  \"items\": [");
-	for (idx, item) in result.items.iter().enumerate() {
-		let comma = if idx + 1 == result.items.len() { "" } else { "," };
-		println!(
-			"    {{\"index\":{},\"canonical\":\"0x{:016x}\",\"code\":\"{}\",\"sdna\":{},\"type\":\"{}\",\"id\":{}}}{}",
-			item.index,
-			item.canonical,
-			json_escape(&render_code(item.code)),
-			item.sdna_nr,
-			json_escape(&item.type_name),
-			str_json(item.id_name.as_deref().map(json_escape).as_deref()),
-			comma,
-		);
-	}
-	println!("  ],");
-	if let Some(stop) = &result.stop {
-		println!(
-			"  \"stop\": {{\"step\":{},\"reason\":\"{}\"}}",
-			stop.step,
-			json_escape(&stop_reason_label(&stop.reason))
-		);
-	} else {
-		println!("  \"stop\": null");
-	}
-	println!("}}");
+	let payload = WalkJson {
+		path: path.display().to_string(),
+		root: root_label.to_owned(),
+		start_ptr: ptr_hex(start_ptr),
+		next_field: next_field.to_owned(),
+		items: result
+			.items
+			.iter()
+			.map(|item| WalkItemJson {
+				index: item.index,
+				canonical: ptr_hex(item.canonical),
+				code: render_code(item.code),
+				sdna: item.sdna_nr,
+				type_name: item.type_name.to_string(),
+				id: item.id_name.as_deref().map(|id| id.to_string()),
+			})
+			.collect(),
+		stop: result.stop.as_ref().map(|stop| WalkStopJson {
+			step: stop.step,
+			reason: stop_reason_label(&stop.reason),
+		}),
+	};
+
+	emit_json(&payload);
+}
+
+#[derive(serde::Serialize)]
+struct WalkItemJson {
+	index: usize,
+	canonical: String,
+	code: String,
+	sdna: u32,
+	#[serde(rename = "type")]
+	type_name: String,
+	id: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+struct WalkStopJson {
+	step: usize,
+	reason: String,
+}
+
+#[derive(serde::Serialize)]
+struct WalkJson {
+	path: String,
+	root: String,
+	start_ptr: String,
+	next_field: String,
+	items: Vec<WalkItemJson>,
+	stop: Option<WalkStopJson>,
 }

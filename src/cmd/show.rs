@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use blendoc::blend::{BlendError, BlendFile, ChasePolicy, DecodeOptions, FieldPath, IdIndex, Value, chase_from_ptr, decode_ptr_instance, scan_id_blocks};
 
 use crate::cmd::print::{PrintCtx, PrintOptions, PtrAnnotCtx, print_value};
-use crate::cmd::util::{RootSelector, json_escape, parse_root_selector, render_code, str_json};
+use crate::cmd::util::{RootSelector, emit_json, parse_root_selector, ptr_hex, render_code};
 
 #[derive(clap::Args)]
 pub struct Args {
@@ -174,14 +174,16 @@ pub fn run(args: Args) -> blendoc::blend::Result<()> {
 }
 
 fn print_json_struct(path: &std::path::Path, root_label: &str, root_ptr: u64, canonical: u64, id_name: Option<&str>, value: &Value) {
-	println!("{{");
-	println!("  \"path\": \"{}\",", json_escape(&path.display().to_string()));
-	println!("  \"root\": \"{}\",", json_escape(root_label));
-	println!("  \"root_ptr\": \"0x{root_ptr:016x}\",");
-	println!("  \"canonical\": \"0x{canonical:016x}\",");
-	println!("  \"id_name\": {},", str_json(id_name.map(json_escape).as_deref()));
-	println!("  \"value\": {}", value_to_json(value));
-	println!("}}");
+	let payload = ShowStructJson {
+		path: path.display().to_string(),
+		root: root_label.to_owned(),
+		root_ptr: ptr_hex(root_ptr),
+		canonical: ptr_hex(canonical),
+		id_name: id_name.map(str::to_owned),
+		value: value_to_json_value(value),
+	};
+
+	emit_json(&payload);
 }
 
 fn print_json_path(
@@ -193,70 +195,100 @@ fn print_json_path(
 	stop: Option<&blendoc::blend::ChaseStop>,
 	hops: Option<&Vec<blendoc::blend::ChaseMeta>>,
 ) {
-	println!("{{");
-	println!("  \"path\": \"{}\",", json_escape(&path.display().to_string()));
-	println!("  \"root\": \"{}\",", json_escape(root_label));
-	println!("  \"root_ptr\": \"0x{root_ptr:016x}\",",);
-	println!("  \"path_expr\": \"{}\",", json_escape(path_expr));
-	println!("  \"value\": {},", value_to_json(value));
-	if let Some(stop) = stop {
-		println!(
-			"  \"stop\": {{\"step\":{},\"reason\":\"{}\"}},",
-			stop.step_index,
-			json_escape(&format!("{:?}", stop.reason))
-		);
-	} else {
-		println!("  \"stop\": null,");
-	}
-	if let Some(hops) = hops {
-		println!("  \"hops\": [");
-		for (idx, hop) in hops.iter().enumerate() {
-			let comma = if idx + 1 == hops.len() { "" } else { "," };
-			println!(
-				"    {{\"ptr\":\"0x{:016x}\",\"code\":\"{}\",\"sdna\":{},\"element\":{},\"offset\":{}}}{}",
-				hop.ptr,
-				json_escape(&render_code(hop.resolved_block_code)),
-				hop.sdna_nr,
-				hop.element_index,
-				hop.element_offset,
-				comma,
-			);
-		}
-		println!("  ]");
-	} else {
-		println!("  \"hops\": null");
-	}
-	println!("}}");
+	let payload = ShowPathJson {
+		path: path.display().to_string(),
+		root: root_label.to_owned(),
+		root_ptr: ptr_hex(root_ptr),
+		path_expr: path_expr.to_owned(),
+		value: value_to_json_value(value),
+		stop: stop.map(|stop| ShowStopJson {
+			step: stop.step_index,
+			reason: format!("{:?}", stop.reason),
+		}),
+		hops: hops.map(|items| {
+			items
+				.iter()
+				.map(|hop| ShowHopJson {
+					ptr: ptr_hex(hop.ptr),
+					code: render_code(hop.resolved_block_code),
+					sdna: hop.sdna_nr,
+					element: hop.element_index,
+					offset: hop.element_offset,
+				})
+				.collect()
+		}),
+	};
+
+	emit_json(&payload);
 }
 
-fn value_to_json(value: &Value) -> String {
+fn value_to_json_value(value: &Value) -> serde_json::Value {
+	use serde_json::{Map, Value as JsonValue};
+
 	match value {
-		Value::Null => "null".to_owned(),
-		Value::Bool(v) => v.to_string(),
-		Value::I64(v) => v.to_string(),
-		Value::U64(v) => v.to_string(),
-		Value::F32(v) => v.to_string(),
-		Value::F64(v) => v.to_string(),
+		Value::Null => JsonValue::Null,
+		Value::Bool(v) => serde_json::json!(v),
+		Value::I64(v) => serde_json::json!(v),
+		Value::U64(v) => serde_json::json!(v),
+		Value::F32(v) => serde_json::json!(v),
+		Value::F64(v) => serde_json::json!(v),
 		Value::Bytes(v) => {
-			let bytes: Vec<String> = v.iter().map(|item| item.to_string()).collect();
-			format!("[{}]", bytes.join(","))
+			let bytes: Vec<JsonValue> = v.iter().map(|item| serde_json::json!(item)).collect();
+			JsonValue::Array(bytes)
 		}
-		Value::String(v) => format!("\"{}\"", json_escape(v)),
-		Value::Ptr(v) => format!("\"0x{v:016x}\""),
+		Value::String(v) => serde_json::json!(v),
+		Value::Ptr(v) => serde_json::json!(ptr_hex(*v)),
 		Value::Array(items) => {
-			let values: Vec<String> = items.iter().map(value_to_json).collect();
-			format!("[{}]", values.join(","))
+			let values: Vec<JsonValue> = items.iter().map(value_to_json_value).collect();
+			JsonValue::Array(values)
 		}
 		Value::Struct(item) => {
-			let mut fields = Vec::new();
-			fields.push(format!("\"type\":\"{}\"", json_escape(&item.type_name)));
-			let entries: Vec<String> = item
+			let fields: Map<String, JsonValue> = item
 				.fields
 				.iter()
-				.map(|field| format!("\"{}\":{}", json_escape(&field.name), value_to_json(&field.value)))
+				.map(|field| (field.name.to_string(), value_to_json_value(&field.value)))
 				.collect();
-			fields.push(format!("\"fields\":{{{}}}", entries.join(",")));
-			format!("{{{}}}", fields.join(","))
+
+			let mut out = Map::new();
+			out.insert("type".to_owned(), serde_json::json!(item.type_name.as_ref()));
+			out.insert("fields".to_owned(), JsonValue::Object(fields));
+			JsonValue::Object(out)
 		}
 	}
+}
+
+#[derive(serde::Serialize)]
+struct ShowStructJson {
+	path: String,
+	root: String,
+	root_ptr: String,
+	canonical: String,
+	id_name: Option<String>,
+	value: serde_json::Value,
+}
+
+#[derive(serde::Serialize)]
+struct ShowStopJson {
+	step: usize,
+	reason: String,
+}
+
+#[derive(serde::Serialize)]
+struct ShowHopJson {
+	ptr: String,
+	code: String,
+	sdna: u32,
+	element: usize,
+	offset: usize,
+}
+
+#[derive(serde::Serialize)]
+struct ShowPathJson {
+	path: String,
+	root: String,
+	root_ptr: String,
+	path_expr: String,
+	value: serde_json::Value,
+	stop: Option<ShowStopJson>,
+	hops: Option<Vec<ShowHopJson>>,
 }
