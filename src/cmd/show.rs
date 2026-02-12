@@ -5,25 +5,59 @@ use blendoc::blend::{BlendError, BlendFile, ChasePolicy, DecodeOptions, FieldPat
 use crate::cmd::print::{PrintCtx, PrintOptions, PtrAnnotCtx, print_value};
 use crate::cmd::util::{RootSelector, json_escape, parse_root_selector, render_code, str_json};
 
+#[derive(clap::Args)]
+pub struct Args {
+	pub file: PathBuf,
+	#[arg(long = "id")]
+	pub id_name: Option<String>,
+	#[arg(long)]
+	pub ptr: Option<String>,
+	#[arg(long)]
+	pub code: Option<String>,
+	#[arg(long = "path")]
+	pub path_expr: Option<String>,
+	#[arg(long)]
+	pub trace: bool,
+	#[arg(long)]
+	pub json: bool,
+	#[arg(long = "max-depth")]
+	pub max_depth: Option<u32>,
+	#[arg(long = "max-array")]
+	pub max_array: Option<usize>,
+	#[arg(long = "include-padding")]
+	pub include_padding: bool,
+	#[arg(long = "strict-layout")]
+	pub strict_layout: bool,
+	#[arg(long = "annotate-ptrs", default_value_t = true)]
+	pub annotate_ptrs: bool,
+	#[arg(long = "raw-ptrs")]
+	pub raw_ptrs: bool,
+	#[arg(long = "expand-depth", default_value_t = 0)]
+	pub expand_depth: u32,
+	#[arg(long = "expand-max-nodes", default_value_t = 64)]
+	pub expand_max_nodes: usize,
+}
+
 /// Decode and print a struct/value from ID, pointer, or block code roots.
-#[allow(clippy::too_many_arguments)]
-pub fn run(
-	path: PathBuf,
-	id_name: Option<String>,
-	ptr: Option<String>,
-	code: Option<String>,
-	path_expr: Option<String>,
-	trace: bool,
-	json: bool,
-	max_depth: Option<u32>,
-	max_array: Option<usize>,
-	include_padding: bool,
-	strict_layout: bool,
-	annotate_ptrs: bool,
-	raw_ptrs: bool,
-	expand_depth: u32,
-	expand_max_nodes: usize,
-) -> blendoc::blend::Result<()> {
+pub fn run(args: Args) -> blendoc::blend::Result<()> {
+	let Args {
+		file: path,
+		id_name,
+		ptr,
+		code,
+		path_expr,
+		trace,
+		json,
+		max_depth,
+		max_array,
+		include_padding,
+		strict_layout,
+		annotate_ptrs,
+		raw_ptrs,
+		expand_depth,
+		expand_max_nodes,
+	} = args;
+
 	let selector = parse_root_selector(code, ptr, id_name)?;
 
 	let blend = BlendFile::open(&path)?;

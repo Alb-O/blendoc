@@ -5,8 +5,16 @@ use blendoc::blend::{BlendError, BlendFile, DecodeOptions, decode_block_instance
 use crate::cmd::print::{PrintOptions, print_value};
 use crate::cmd::util::{parse_block_code, render_code};
 
+#[derive(clap::Args)]
+pub struct Args {
+	pub path: PathBuf,
+	#[arg(long)]
+	pub code: String,
+}
+
 /// Decode and print the first block matching `code`.
-pub fn run(path: PathBuf, code: String) -> blendoc::blend::Result<()> {
+pub fn run(args: Args) -> blendoc::blend::Result<()> {
+	let Args { path, code } = args;
 	let block_code = parse_block_code(&code)?;
 	run_with_code(path, block_code, DecodeOptions::default(), PrintOptions::default())
 }

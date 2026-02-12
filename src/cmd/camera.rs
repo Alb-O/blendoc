@@ -4,8 +4,15 @@ use blendoc::blend::{BlendFile, DecodeOptions, Value, chase_scene_camera};
 
 use crate::cmd::util::render_code;
 
+#[derive(clap::Args)]
+pub struct Args {
+	pub path: PathBuf,
+}
+
 /// Resolve and print the active scene camera target, if present.
-pub fn run(path: PathBuf) -> blendoc::blend::Result<()> {
+pub fn run(args: Args) -> blendoc::blend::Result<()> {
+	let Args { path } = args;
+
 	let blend = BlendFile::open(&path)?;
 	let dna = blend.dna()?;
 	let index = blend.pointer_index()?;

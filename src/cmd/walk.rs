@@ -7,22 +7,31 @@ use blendoc::blend::{
 
 use crate::cmd::util::{RootSelector, json_escape, parse_root_selector, render_code, str_json};
 
-pub struct WalkArgs {
-	pub path: std::path::PathBuf,
+#[derive(clap::Args)]
+pub struct Args {
+	pub file: std::path::PathBuf,
+	#[arg(long = "id")]
 	pub id_name: Option<String>,
+	#[arg(long)]
 	pub ptr: Option<String>,
+	#[arg(long)]
 	pub code: Option<String>,
+	#[arg(long = "path")]
 	pub path_expr: Option<String>,
+	#[arg(long = "next", default_value = "next")]
 	pub next_field: String,
+	#[arg(long = "refs-depth")]
 	pub refs_depth: Option<u32>,
+	#[arg(long = "limit")]
 	pub limit: Option<usize>,
+	#[arg(long)]
 	pub json: bool,
 }
 
 /// Walk linked pointer chains from an ID/pointer/code root.
-pub fn run(args: WalkArgs) -> blendoc::blend::Result<()> {
-	let WalkArgs {
-		path,
+pub fn run(args: Args) -> blendoc::blend::Result<()> {
+	let Args {
+		file: path,
 		id_name,
 		ptr,
 		code,

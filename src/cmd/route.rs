@@ -5,21 +5,47 @@ use blendoc::blend::{BlendError, BlendFile, IdIndex, RouteOptions, RouteResult, 
 
 use crate::cmd::util::{IdOrPtrSelector, RootSelector, json_escape, parse_id_or_ptr_selector, parse_root_selector, render_code, str_json};
 
+#[derive(clap::Args)]
+pub struct Args {
+	pub file: PathBuf,
+	#[arg(long = "from-id")]
+	pub from_id: Option<String>,
+	#[arg(long = "from-ptr")]
+	pub from_ptr: Option<String>,
+	#[arg(long = "from-code")]
+	pub from_code: Option<String>,
+	#[arg(long = "to-id")]
+	pub to_id: Option<String>,
+	#[arg(long = "to-ptr")]
+	pub to_ptr: Option<String>,
+	#[arg(long)]
+	pub depth: Option<u32>,
+	#[arg(long = "refs-depth")]
+	pub refs_depth: Option<u32>,
+	#[arg(long = "max-nodes")]
+	pub max_nodes: Option<usize>,
+	#[arg(long = "max-edges")]
+	pub max_edges: Option<usize>,
+	#[arg(long)]
+	pub json: bool,
+}
+
 /// Find and print a shortest pointer route between two endpoints.
-#[allow(clippy::too_many_arguments)]
-pub fn run(
-	path: PathBuf,
-	from_id: Option<String>,
-	from_ptr: Option<String>,
-	from_code: Option<String>,
-	to_id: Option<String>,
-	to_ptr: Option<String>,
-	depth: Option<u32>,
-	refs_depth: Option<u32>,
-	max_nodes: Option<usize>,
-	max_edges: Option<usize>,
-	json: bool,
-) -> blendoc::blend::Result<()> {
+pub fn run(args: Args) -> blendoc::blend::Result<()> {
+	let Args {
+		file: path,
+		from_id,
+		from_ptr,
+		from_code,
+		to_id,
+		to_ptr,
+		depth,
+		refs_depth,
+		max_nodes,
+		max_edges,
+		json,
+	} = args;
+
 	let from_selector = parse_root_selector(from_code, from_ptr, from_id)?;
 	let to_selector = parse_id_or_ptr_selector(to_id, to_ptr)?;
 

@@ -4,16 +4,35 @@ use blendoc::blend::{BlendError, BlendFile, IdIndex, RefRecord, RefScanOptions, 
 
 use crate::cmd::util::{RootSelector, json_escape, parse_root_selector, render_code, str_json};
 
+#[derive(clap::Args)]
+pub struct Args {
+	pub file: PathBuf,
+	#[arg(long)]
+	pub code: Option<String>,
+	#[arg(long)]
+	pub ptr: Option<String>,
+	#[arg(long = "id")]
+	pub id_name: Option<String>,
+	#[arg(long)]
+	pub depth: Option<u32>,
+	#[arg(long)]
+	pub limit: Option<usize>,
+	#[arg(long)]
+	pub json: bool,
+}
+
 /// Scan and print pointer references from one selected root struct.
-pub fn run(
-	path: PathBuf,
-	code: Option<String>,
-	ptr: Option<String>,
-	id_name: Option<String>,
-	depth: Option<u32>,
-	limit: Option<usize>,
-	json: bool,
-) -> blendoc::blend::Result<()> {
+pub fn run(args: Args) -> blendoc::blend::Result<()> {
+	let Args {
+		file: path,
+		code,
+		ptr,
+		id_name,
+		depth,
+		limit,
+		json,
+	} = args;
+
 	let selector = parse_root_selector(code, ptr, id_name)?;
 
 	let blend = BlendFile::open(&path)?;

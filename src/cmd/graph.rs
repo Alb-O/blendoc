@@ -5,24 +5,35 @@ use blendoc::blend::{BlendError, BlendFile, GraphOptions, GraphResult, GraphTrun
 
 use crate::cmd::util::{RootSelector, dot_escape, json_escape, parse_root_selector, render_code, str_json};
 
-pub struct GraphArgs {
-	pub path: PathBuf,
+#[derive(clap::Args)]
+pub struct Args {
+	pub file: PathBuf,
+	#[arg(long)]
 	pub code: Option<String>,
+	#[arg(long)]
 	pub ptr: Option<String>,
+	#[arg(long = "id")]
 	pub id_name: Option<String>,
+	#[arg(long)]
 	pub depth: Option<u32>,
+	#[arg(long = "refs-depth")]
 	pub refs_depth: Option<u32>,
+	#[arg(long = "max-nodes")]
 	pub max_nodes: Option<usize>,
+	#[arg(long = "max-edges")]
 	pub max_edges: Option<usize>,
+	#[arg(long = "id-only")]
 	pub id_only: bool,
+	#[arg(long)]
 	pub dot: bool,
+	#[arg(long)]
 	pub json: bool,
 }
 
 /// Build and print a shallow pointer graph from one root selector.
-pub fn run(args: GraphArgs) -> blendoc::blend::Result<()> {
-	let GraphArgs {
-		path,
+pub fn run(args: Args) -> blendoc::blend::Result<()> {
+	let Args {
+		file: path,
 		code,
 		ptr,
 		id_name,

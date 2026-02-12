@@ -4,8 +4,29 @@ use blendoc::blend::{BlendFile, IdRecord, Result, scan_id_blocks};
 
 use crate::cmd::util::{json_escape, parse_block_code, ptr_json, render_code};
 
+#[derive(clap::Args)]
+pub struct Args {
+	pub path: PathBuf,
+	#[arg(long)]
+	pub code: Option<String>,
+	#[arg(long = "type")]
+	pub type_name: Option<String>,
+	#[arg(long)]
+	pub limit: Option<usize>,
+	#[arg(long)]
+	pub json: bool,
+}
+
 /// Scan and print ID-root block summaries.
-pub fn run(path: PathBuf, code: Option<String>, type_name: Option<String>, limit: Option<usize>, json: bool) -> Result<()> {
+pub fn run(args: Args) -> Result<()> {
+	let Args {
+		path,
+		code,
+		type_name,
+		limit,
+		json,
+	} = args;
+
 	let blend = BlendFile::open(&path)?;
 	let dna = blend.dna()?;
 

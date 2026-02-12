@@ -5,16 +5,35 @@ use blendoc::blend::{BlendFile, IdGraphOptions, IdGraphResult, IdGraphTruncation
 
 use crate::cmd::util::{dot_escape, json_escape, render_code};
 
+#[derive(clap::Args)]
+pub struct Args {
+	pub file: PathBuf,
+	#[arg(long = "refs-depth")]
+	pub refs_depth: Option<u32>,
+	#[arg(long = "max-edges")]
+	pub max_edges: Option<usize>,
+	#[arg(long)]
+	pub dot: bool,
+	#[arg(long)]
+	pub json: bool,
+	#[arg(long)]
+	pub prefix: Option<String>,
+	#[arg(long = "type")]
+	pub type_name: Option<String>,
+}
+
 /// Build and print whole-file ID-to-ID graph.
-pub fn run(
-	path: PathBuf,
-	refs_depth: Option<u32>,
-	max_edges: Option<usize>,
-	dot: bool,
-	json: bool,
-	prefix: Option<String>,
-	type_name: Option<String>,
-) -> blendoc::blend::Result<()> {
+pub fn run(args: Args) -> blendoc::blend::Result<()> {
+	let Args {
+		file: path,
+		refs_depth,
+		max_edges,
+		dot,
+		json,
+		prefix,
+		type_name,
+	} = args;
+
 	let blend = BlendFile::open(&path)?;
 	let dna = blend.dna()?;
 	let index = blend.pointer_index()?;

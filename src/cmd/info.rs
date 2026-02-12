@@ -2,8 +2,15 @@ use std::path::PathBuf;
 
 use blendoc::blend::{BlendFile, Result};
 
+#[derive(clap::Args)]
+pub struct Args {
+	pub path: PathBuf,
+}
+
 /// Print high-level file and block statistics.
-pub fn run(path: PathBuf) -> Result<()> {
+pub fn run(args: Args) -> Result<()> {
+	let Args { path } = args;
+
 	let blend = BlendFile::open(&path)?;
 	let stats = blend.scan_block_stats()?;
 

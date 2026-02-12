@@ -7,8 +7,32 @@ use blendoc::blend::{
 
 use crate::cmd::util::{RootSelector, json_escape, parse_root_selector, ptr_json, render_code, str_json};
 
+#[derive(clap::Args)]
+pub struct Args {
+	pub file: PathBuf,
+	#[arg(long)]
+	pub code: Option<String>,
+	#[arg(long)]
+	pub ptr: Option<String>,
+	#[arg(long = "id")]
+	pub id_name: Option<String>,
+	#[arg(long = "path")]
+	pub path_expr: String,
+	#[arg(long)]
+	pub json: bool,
+}
+
 /// Execute path chase from a selected root and print hop trace.
-pub fn run(path: PathBuf, code: Option<String>, ptr: Option<String>, id_name: Option<String>, path_expr: String, json: bool) -> blendoc::blend::Result<()> {
+pub fn run(args: Args) -> blendoc::blend::Result<()> {
+	let Args {
+		file: path,
+		code,
+		ptr,
+		id_name,
+		path_expr,
+		json,
+	} = args;
+
 	let root = parse_root_selector(code, ptr, id_name)?;
 
 	let blend = BlendFile::open(&path)?;

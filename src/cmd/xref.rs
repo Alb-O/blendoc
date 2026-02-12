@@ -4,15 +4,32 @@ use blendoc::blend::{BlendError, BlendFile, IdIndex, XrefOptions, find_inbound_r
 
 use crate::cmd::util::{IdOrPtrSelector, json_escape, parse_id_or_ptr_selector, str_json};
 
+#[derive(clap::Args)]
+pub struct Args {
+	pub file: PathBuf,
+	#[arg(long = "id")]
+	pub id_name: Option<String>,
+	#[arg(long)]
+	pub ptr: Option<String>,
+	#[arg(long = "refs-depth")]
+	pub refs_depth: Option<u32>,
+	#[arg(long)]
+	pub limit: Option<usize>,
+	#[arg(long)]
+	pub json: bool,
+}
+
 /// Find inbound references to a selected target pointer.
-pub fn run(
-	path: PathBuf,
-	id_name: Option<String>,
-	ptr: Option<String>,
-	refs_depth: Option<u32>,
-	limit: Option<usize>,
-	json: bool,
-) -> blendoc::blend::Result<()> {
+pub fn run(args: Args) -> blendoc::blend::Result<()> {
+	let Args {
+		file: path,
+		id_name,
+		ptr,
+		refs_depth,
+		limit,
+		json,
+	} = args;
+
 	let selector = parse_id_or_ptr_selector(id_name, ptr)?;
 
 	let blend = BlendFile::open(&path)?;
