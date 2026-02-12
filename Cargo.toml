@@ -22,3 +22,6 @@ zstd = "0.13.3"
 
 [lints.rust]
 missing_docs = "warn"
+
+[workspace]
+members = ["tools/blendoc_blendfiles_downloader"]

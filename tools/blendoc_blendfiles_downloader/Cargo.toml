@@ -1,0 +1,11 @@
+[package]
+name = "blendoc_blendfiles_downloader"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+publish = false
+
+[dependencies]
+clap = { version = "4.5.31", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"

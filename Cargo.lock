@@ -64,6 +64,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "blendoc_blendfiles_downloader"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "cc"
 version = "1.2.55"
 source = "registry+https://github.com/rust-lang/crates.io-index"
