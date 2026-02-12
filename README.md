@@ -40,7 +40,7 @@ The implementation is split into explicit layers:
    - Parses `LargeBHead8` as:
      - `code [u8;4]`
      - `sdna_nr u32`
-     - `old u64`
+     - `old u64` (stored address identifier)
      - `len i64` (validated non-negative)
      - `nr i64` (validated non-negative)
    - Yields safe `Block` views with payload slices and file offsets.
@@ -65,8 +65,11 @@ The implementation is split into explicit layers:
      - optional strict layout check
 
 6. **Pointer indexing and typed resolution** (`src/blend/pointer.rs`)
-   - Builds range index from `old` pointer bases to payload spans.
-   - Resolves pointers both to exact block starts and in-block offsets.
+   - Detects pointer storage mode:
+     - `address_ranges` (legacy raw runtime pointers)
+     - `stable_ids` (opaque stable identifiers written by modern Blender)
+   - Resolves exact block-start identifiers in all modes.
+   - Uses in-block offset/range fallback only for `address_ranges`.
    - Computes element-level position (`element_index`, `element_offset`) using SDNA sizes.
 
 7. **Pointer chase primitives + path chase** (`src/blend/chase.rs`, `src/blend/path.rs`, `src/blend/chase_path.rs`)
@@ -81,7 +84,7 @@ The implementation is split into explicit layers:
 All commands are under the `blendoc` binary:
 
 - `blendoc info <file>`
-  - header summary, compression, block count, top block codes.
+  - header summary, pointer storage mode, block count, top block codes.
 
 - `blendoc dna <file> [--struct <Name>]`
   - SDNA table counts and optional struct field dump.

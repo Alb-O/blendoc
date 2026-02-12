@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use blendoc::blend::{BlendFile, Result};
+use blendoc::blend::{BlendFile, PointerStorage, Result};
 
 #[derive(clap::Args)]
 pub struct Args {
@@ -13,6 +13,7 @@ pub fn run(args: Args) -> Result<()> {
 
 	let blend = BlendFile::open(&path)?;
 	let stats = blend.scan_block_stats()?;
+	let pointer_storage = blend.pointer_index()?.storage();
 
 	println!("path: {}", path.display());
 	println!("compression: {}", blend.compression.as_str());
@@ -22,6 +23,7 @@ pub fn run(args: Args) -> Result<()> {
 	println!("bhead_layout: large_bhead8");
 	println!("endianness: little");
 	println!("pointer_size: 8");
+	println!("pointer_storage: {}", pointer_storage_label(pointer_storage));
 	println!("block_count: {}", stats.block_count);
 	println!("has_dna1: {}", stats.has_dna1);
 	println!("has_endb: {}", stats.has_endb);
@@ -51,4 +53,11 @@ fn code_label(code: [u8; 4]) -> String {
 		}
 	}
 	if out.is_empty() { "....".to_owned() } else { out }
+}
+
+fn pointer_storage_label(storage: PointerStorage) -> &'static str {
+	match storage {
+		PointerStorage::AddressRanges => "address_ranges",
+		PointerStorage::StableIds => "stable_ids",
+	}
 }

@@ -149,3 +149,60 @@ mod pointer_arrays {
 		assert!(refs.iter().any(|item| item.field.as_ref() == "nested.first" && item.ptr == 0x3000));
 	}
 }
+
+mod stable_ids {
+	use std::path::{Path, PathBuf};
+
+	use crate::blend::{BlendFile, IdIndex, PointerStorage, RefScanOptions, scan_id_blocks, scan_refs_from_ptr};
+
+	#[test]
+	fn v51_character_scene_refs_resolve_exact_ids_only() {
+		assert_exact_stable_id_resolution("v5.1_character.blend");
+	}
+
+	#[test]
+	fn v51_sword_scene_refs_resolve_exact_ids_only() {
+		assert_exact_stable_id_resolution("v5.1_sword.blend");
+	}
+
+	fn assert_exact_stable_id_resolution(name: &str) {
+		let blend = BlendFile::open(fixture_path(name)).expect("fixture opens");
+		let dna = blend.dna().expect("dna parses");
+		let index = blend.pointer_index().expect("pointer index builds");
+		assert_eq!(index.storage(), PointerStorage::StableIds);
+
+		let ids = scan_id_blocks(&blend, &dna).expect("id scan succeeds");
+		let id_index = IdIndex::build(ids.clone());
+		let scene = ids.iter().find(|item| item.code == [b'S', b'C', 0, 0]).expect("scene id record exists");
+
+		let refs = scan_refs_from_ptr(
+			&dna,
+			&index,
+			&id_index,
+			scene.old_ptr,
+			&RefScanOptions {
+				max_depth: 1,
+				max_array_elems: 4096,
+			},
+		)
+		.expect("ref scan succeeds");
+
+		let world = refs.iter().find(|item| item.field.as_ref() == "world").expect("world ref exists");
+		let target = world.resolved.as_ref().expect("world should resolve");
+		assert_eq!(target.type_name.as_ref(), "World");
+
+		for record in refs.iter().filter(|item| item.ptr != 0) {
+			if let Some(target) = &record.resolved {
+				assert_eq!(
+					target.canonical, record.ptr,
+					"stable-id resolution should require exact-id match (field={})",
+					record.field
+				);
+			}
+		}
+	}
+
+	fn fixture_path(name: &str) -> PathBuf {
+		Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures").join(name)
+	}
+}

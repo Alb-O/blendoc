@@ -8,7 +8,9 @@ pub struct BHead {
 	pub code: [u8; 4],
 	/// SDNA struct index for payload interpretation.
 	pub sdna_nr: u32,
-	/// Original in-memory base address used by Blender.
+	/// Stored address identifier used for pointer relocation.
+	///
+	/// In modern files this can be a stable opaque ID instead of a raw runtime pointer.
 	pub old: u64,
 	/// Payload byte length.
 	pub len: u64,

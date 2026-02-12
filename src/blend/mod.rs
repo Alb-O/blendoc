@@ -50,7 +50,7 @@ pub use idgraph::{IdGraphEdge, IdGraphNode, IdGraphOptions, IdGraphResult, IdGra
 /// Field path parser types.
 pub use path::{FieldPath, PathStep};
 /// Pointer index and resolution types.
-pub use pointer::{PointerIndex, PtrEntry, ResolvedPtr, TypedResolvedPtr};
+pub use pointer::{PointerIndex, PointerStorage, PtrEntry, ResolvedPtr, TypedResolvedPtr};
 /// Pointer-reference scan output and options.
 pub use refs::{RefRecord, RefScanOptions, RefTarget, scan_refs_from_ptr};
 /// Route-finding types and entry points.

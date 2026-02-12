@@ -1,10 +1,23 @@
+use std::collections::HashMap;
+
 use crate::blend::{BlendError, BlendFile, Block, Dna, Result};
 
-/// Range index for resolving old-memory pointers to blocks.
+/// Heuristic storage mode for pointer-like IDs in a `.blend` file.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PointerStorage {
+	/// Classic layout where stored values behave like real address ranges.
+	AddressRanges,
+	/// Stable-ID layout where stored values are opaque identifiers.
+	StableIds,
+}
+
+/// Index for resolving stored old-address identifiers to blocks.
 #[derive(Debug)]
 pub struct PointerIndex<'a> {
 	starts: Vec<u64>,
 	entries: Vec<PtrEntry<'a>>,
+	by_start: HashMap<u64, usize>,
+	storage: PointerStorage,
 }
 
 /// One indexed pointer range entry.
@@ -46,8 +59,20 @@ impl<'a> PointerIndex<'a> {
 	/// This is primarily useful for deterministic unit tests.
 	pub fn from_entries_for_test(mut entries: Vec<PtrEntry<'a>>) -> Self {
 		entries.sort_by_key(|entry| entry.start_old);
+
+		let mut by_start = HashMap::with_capacity(entries.len());
+		for (idx, entry) in entries.iter().enumerate() {
+			by_start.entry(entry.start_old).or_insert(idx);
+		}
+
 		let starts = entries.iter().map(|entry| entry.start_old).collect();
-		Self { starts, entries }
+		let storage = detect_pointer_storage(&entries);
+		Self {
+			starts,
+			entries,
+			by_start,
+			storage,
+		}
 	}
 
 	/// Scan a file and build pointer ranges for non-empty blocks.
@@ -74,6 +99,15 @@ impl<'a> PointerIndex<'a> {
 			return None;
 		}
 
+		if let Some(idx) = self.by_start.get(&ptr).copied() {
+			let entry = self.entries[idx];
+			return Some(ResolvedPtr { entry, byte_offset: 0 });
+		}
+
+		if self.storage == PointerStorage::StableIds {
+			return None;
+		}
+
 		let idx = self.starts.partition_point(|start| *start <= ptr);
 		if idx == 0 {
 			return None;
@@ -88,6 +122,11 @@ impl<'a> PointerIndex<'a> {
 			entry,
 			byte_offset: (ptr - entry.start_old) as usize,
 		})
+	}
+
+	/// Return detected pointer-ID storage behavior for this file.
+	pub fn storage(&self) -> PointerStorage {
+		self.storage
 	}
 
 	/// Resolve a pointer and compute SDNA element position data.
@@ -165,6 +204,17 @@ impl<'a> PointerIndex<'a> {
 	pub fn is_empty(&self) -> bool {
 		self.entries.is_empty()
 	}
+}
+
+fn detect_pointer_storage(entries: &[PtrEntry<'_>]) -> PointerStorage {
+	let mut max_end = 0_u64;
+	for entry in entries {
+		if entry.start_old < max_end {
+			return PointerStorage::StableIds;
+		}
+		max_end = max_end.max(entry.end_old);
+	}
+	PointerStorage::AddressRanges
 }
 
 impl<'a> ResolvedPtr<'a> {
