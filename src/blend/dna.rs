@@ -1,28 +1,41 @@
 use crate::blend::bytes::Cursor;
 use crate::blend::{BlendError, Result};
 
+/// Parsed SDNA schema tables.
 #[derive(Debug)]
 pub struct Dna {
+	/// Field name strings from `NAME`.
 	pub names: Vec<Box<str>>,
+	/// Type name strings from `TYPE`.
 	pub types: Vec<Box<str>>,
+	/// Type byte sizes from `TLEN`.
 	pub tlen: Vec<u16>,
+	/// Struct declarations from `STRC`.
 	pub structs: Vec<DnaStruct>,
+	/// Fast mapping `type_idx -> sdna_struct_idx`.
 	pub struct_for_type: Vec<Option<u32>>,
 }
 
+/// One struct declaration from SDNA.
 #[derive(Debug)]
 pub struct DnaStruct {
+	/// Type index for this struct's name.
 	pub type_idx: u16,
+	/// Field declarations in source order.
 	pub fields: Vec<DnaField>,
 }
 
+/// One SDNA field declaration.
 #[derive(Debug, Clone, Copy)]
 pub struct DnaField {
+	/// Type table index for field type.
 	pub type_idx: u16,
+	/// Name table index for field declarator text.
 	pub name_idx: u16,
 }
 
 impl Dna {
+	/// Parse `DNA1` payload bytes into SDNA tables.
 	pub fn parse(payload: &[u8]) -> Result<Self> {
 		let mut cursor = Cursor::new(payload);
 
@@ -97,20 +110,24 @@ impl Dna {
 		})
 	}
 
+	/// Look up struct declaration by SDNA struct index.
 	pub fn struct_by_sdna(&self, sdna_nr: u32) -> Option<&DnaStruct> {
 		self.structs.get(sdna_nr as usize)
 	}
 
+	/// Look up struct declaration by type index.
 	pub fn struct_by_type_idx(&self, type_idx: u16) -> Option<&DnaStruct> {
 		self.struct_for_type
 			.get(type_idx as usize)
 			.and_then(|index| index.and_then(|value| self.structs.get(value as usize)))
 	}
 
+	/// Return type name by type index.
 	pub fn type_name(&self, type_idx: u16) -> &str {
 		&self.types[type_idx as usize]
 	}
 
+	/// Return field name/declarator by name index.
 	pub fn field_name(&self, name_idx: u16) -> &str {
 		&self.names[name_idx as usize]
 	}

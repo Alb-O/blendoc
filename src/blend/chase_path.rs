@@ -5,19 +5,29 @@ use crate::blend::{
 	decode_struct_instance,
 };
 
+/// Behavior when a traversal stop condition is encountered.
 #[derive(Debug, Clone, Copy)]
 pub enum StopMode {
+	/// Return a `ChaseResult` with a stop reason.
 	Stop,
+	/// Return an immediate error.
 	Error,
 }
 
+/// Policy controls for generic path-based pointer traversal.
 #[derive(Debug, Clone)]
 pub struct ChasePolicy {
+	/// Maximum number of pointer dereference hops.
 	pub max_hops: usize,
+	/// Maximum number of canonical visited nodes.
 	pub max_visited: usize,
+	/// Default array index used when field access hits an array.
 	pub array_default_index: Option<usize>,
+	/// Action when pointer is null.
 	pub on_null_ptr: StopMode,
+	/// Action when pointer cannot be resolved.
 	pub on_unresolved_ptr: StopMode,
+	/// Action when cycle or visited-limit condition is encountered.
 	pub on_cycle: StopMode,
 }
 
@@ -34,30 +44,62 @@ impl Default for ChasePolicy {
 	}
 }
 
+/// Reason traversal stopped before consuming all requested semantics.
 #[derive(Debug, Clone)]
 pub enum ChaseStopReason {
+	/// Encountered a null pointer.
 	NullPtr,
+	/// Encountered a non-zero pointer that was not resolvable.
 	UnresolvedPtr(u64),
+	/// Encountered a previously visited canonical pointer.
 	Cycle(u64),
-	MissingField { struct_name: String, field: String },
-	ExpectedStruct { got: String },
-	ExpectedArray { got: String },
-	IndexOob { index: usize, len: usize },
+	/// Requested struct field is absent.
+	MissingField {
+		/// Struct type where lookup failed.
+		struct_name: String,
+		/// Missing field name.
+		field: String,
+	},
+	/// Operation required a struct value but found another kind.
+	ExpectedStruct {
+		/// Actual value kind.
+		got: String,
+	},
+	/// Operation required an array value but found another kind.
+	ExpectedArray {
+		/// Actual value kind.
+		got: String,
+	},
+	/// Array index was out of bounds.
+	IndexOob {
+		/// Requested index.
+		index: usize,
+		/// Array length.
+		len: usize,
+	},
 }
 
+/// Stop metadata with source step index.
 #[derive(Debug, Clone)]
 pub struct ChaseStop {
+	/// Path step index that produced the stop.
 	pub step_index: usize,
+	/// Structured stop reason.
 	pub reason: ChaseStopReason,
 }
 
+/// Result of path traversal and pointer chasing.
 #[derive(Debug, Clone)]
 pub struct ChaseResult {
+	/// Final value reached by traversal.
 	pub value: Value,
+	/// Ordered metadata for performed pointer dereferences.
 	pub hops: Vec<ChaseMeta>,
+	/// Optional stop details when traversal ended early.
 	pub stop: Option<ChaseStop>,
 }
 
+/// Start from the first block code match and chase a parsed field path.
 pub fn chase_from_block_code<'a>(
 	file: &'a BlendFile,
 	dna: &Dna,
@@ -72,6 +114,7 @@ pub fn chase_from_block_code<'a>(
 	chase_value(root, dna, index, path, decode, policy)
 }
 
+/// Start from a raw pointer and chase a parsed field path.
 pub fn chase_from_ptr<'a>(
 	dna: &Dna,
 	index: &PointerIndex<'a>,

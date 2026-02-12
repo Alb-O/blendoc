@@ -5,14 +5,18 @@ use std::path::Path;
 use crate::blend::compression::decode_bytes;
 use crate::blend::{BlendError, BlendHeader, Block, BlockIter, Compression, Dna, PointerIndex, Result};
 
+/// Opened blend container with decoded bytes and parsed header.
 pub struct BlendFile {
+	/// Parsed file header.
 	pub header: BlendHeader,
+	/// Compression mode detected for source bytes.
 	pub compression: Compression,
 	bytes: Vec<u8>,
 	blocks_offset: usize,
 }
 
 impl BlendFile {
+	/// Read, decode, and parse a blend file from disk.
 	pub fn open(path: impl AsRef<Path>) -> Result<Self> {
 		let raw = fs::read(path)?;
 		let (compression, bytes) = decode_bytes(raw)?;
@@ -29,14 +33,17 @@ impl BlendFile {
 		})
 	}
 
+	/// Return decoded raw bytes backing this file.
 	pub fn bytes(&self) -> &[u8] {
 		&self.bytes
 	}
 
+	/// Iterate all blocks starting at header-defined offset.
 	pub fn blocks(&self) -> BlockIter<'_> {
 		BlockIter::new(&self.bytes, self.blocks_offset)
 	}
 
+	/// Scan basic block distribution statistics.
 	pub fn scan_block_stats(&self) -> Result<BlockStats> {
 		let mut stats = BlockStats {
 			block_count: 0,
@@ -62,11 +69,13 @@ impl BlendFile {
 		Ok(stats)
 	}
 
+	/// Parse and return the first `DNA1` block as SDNA tables.
 	pub fn dna(&self) -> Result<Dna> {
 		let block = self.find_first_block_by_code(*b"DNA1")?.ok_or(BlendError::DnaNotFound)?;
 		Dna::parse(block.payload)
 	}
 
+	/// Find the first block matching a four-byte code.
 	pub fn find_first_block_by_code(&self, code: [u8; 4]) -> Result<Option<Block<'_>>> {
 		for block in self.blocks() {
 			let block = block?;
@@ -77,15 +86,22 @@ impl BlendFile {
 		Ok(None)
 	}
 
+	/// Build an index for old-pointer resolution.
 	pub fn pointer_index(&self) -> Result<PointerIndex<'_>> {
 		PointerIndex::build(self)
 	}
 }
 
+/// Aggregate block-level counts from a linear scan.
 pub struct BlockStats {
+	/// Number of parsed blocks.
 	pub block_count: u32,
+	/// Whether a `DNA1` block was seen.
 	pub has_dna1: bool,
+	/// Whether an `ENDB` terminator block was seen.
 	pub has_endb: bool,
+	/// Code of the final block visited.
 	pub last_code: [u8; 4],
+	/// Frequency table by block code.
 	pub codes: HashMap<[u8; 4], u32>,
 }

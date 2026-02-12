@@ -1,40 +1,56 @@
 use crate::blend::{BlendFile, Block, Dna, Result};
 
+/// Range index for resolving old-memory pointers to blocks.
 #[derive(Debug)]
 pub struct PointerIndex<'a> {
 	starts: Vec<u64>,
 	entries: Vec<PtrEntry<'a>>,
 }
 
+/// One indexed pointer range entry.
 #[derive(Debug, Clone, Copy)]
 pub struct PtrEntry<'a> {
+	/// Base old pointer address for this block payload.
 	pub start_old: u64,
+	/// Exclusive end address for this block payload range.
 	pub end_old: u64,
+	/// Source block metadata and payload.
 	pub block: Block<'a>,
 }
 
+/// Result of mapping a pointer to an indexed range.
 #[derive(Debug, Clone, Copy)]
 pub struct ResolvedPtr<'a> {
+	/// Matched range entry.
 	pub entry: PtrEntry<'a>,
+	/// Byte offset of pointer inside matched entry.
 	pub byte_offset: usize,
 }
 
+/// Resolved pointer annotated with SDNA element positioning.
 #[derive(Debug, Clone, Copy)]
 pub struct TypedResolvedPtr<'a> {
+	/// Base untyped resolution.
 	pub base: ResolvedPtr<'a>,
+	/// Size in bytes of one decoded element.
 	pub struct_size: usize,
+	/// Element index when pointer lands within `nr * struct_size`.
 	pub element_index: Option<usize>,
+	/// Byte offset within the resolved element.
 	pub element_offset: usize,
 }
 
 impl<'a> PointerIndex<'a> {
-	#[doc(hidden)]
+	/// Build a sorted index from caller-provided entries.
+	///
+	/// This is primarily useful for deterministic unit tests.
 	pub fn from_entries_for_test(mut entries: Vec<PtrEntry<'a>>) -> Self {
 		entries.sort_by_key(|entry| entry.start_old);
 		let starts = entries.iter().map(|entry| entry.start_old).collect();
 		Self { starts, entries }
 	}
 
+	/// Scan a file and build pointer ranges for non-empty blocks.
 	pub fn build(file: &'a BlendFile) -> Result<Self> {
 		let mut entries = Vec::new();
 
@@ -52,6 +68,7 @@ impl<'a> PointerIndex<'a> {
 		Ok(Self::from_entries_for_test(entries))
 	}
 
+	/// Resolve a pointer to the containing payload range.
 	pub fn resolve(&self, ptr: u64) -> Option<ResolvedPtr<'a>> {
 		if ptr == 0 {
 			return None;
@@ -73,6 +90,7 @@ impl<'a> PointerIndex<'a> {
 		})
 	}
 
+	/// Resolve a pointer and compute SDNA element position data.
 	pub fn resolve_typed(&self, dna: &Dna, ptr: u64) -> Option<TypedResolvedPtr<'a>> {
 		let base = self.resolve(ptr)?;
 		let item = dna.struct_by_sdna(base.entry.block.head.sdna_nr)?;
@@ -103,20 +121,24 @@ impl<'a> PointerIndex<'a> {
 		})
 	}
 
+	/// Return all indexed entries in sorted order.
 	pub fn entries(&self) -> &[PtrEntry<'a>] {
 		&self.entries
 	}
 
+	/// Return number of indexed entries.
 	pub fn len(&self) -> usize {
 		self.entries.len()
 	}
 }
 
 impl<'a> ResolvedPtr<'a> {
+	/// Return full payload bytes for the matched block.
 	pub fn payload(&self) -> &'a [u8] {
 		self.entry.block.payload
 	}
 
+	/// Return a bounded slice starting at `byte_offset`.
 	pub fn slice_from(&self, len: usize) -> Option<&'a [u8]> {
 		let start = self.byte_offset;
 		let end = start.checked_add(len)?;

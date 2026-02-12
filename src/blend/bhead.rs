@@ -1,16 +1,23 @@
 use crate::blend::bytes::Cursor;
 use crate::blend::{BlendError, Result};
 
+/// Parsed `LargeBHead8` block header.
 #[derive(Debug, Clone, Copy)]
 pub struct BHead {
+	/// Four-byte block code.
 	pub code: [u8; 4],
+	/// SDNA struct index for payload interpretation.
 	pub sdna_nr: u32,
+	/// Original in-memory base address used by Blender.
 	pub old: u64,
+	/// Payload byte length.
 	pub len: u64,
+	/// Number of elements stored in payload.
 	pub nr: u64,
 }
 
 impl BHead {
+	/// Parse a block header from cursor position.
 	pub fn parse(cursor: &mut Cursor<'_>) -> Result<Self> {
 		let code = cursor.read_code4()?;
 		let sdna_nr = cursor.read_u32_le()?;
@@ -35,6 +42,7 @@ impl BHead {
 		})
 	}
 
+	/// Return `true` when this is the terminal `ENDB` block.
 	pub fn is_endb(&self) -> bool {
 		self.code == *b"ENDB"
 	}

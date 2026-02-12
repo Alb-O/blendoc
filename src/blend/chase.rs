@@ -1,16 +1,25 @@
 use crate::blend::{BlendError, BlendFile, DecodeOptions, Dna, PointerIndex, Result, StructValue, Value, decode_block_instances, decode_struct_instance};
 
+/// Metadata captured for one pointer dereference step.
 #[derive(Debug, Clone, Copy)]
 pub struct ChaseMeta {
+	/// Pointer value being resolved.
 	pub ptr: u64,
+	/// Block code containing the resolved target.
 	pub resolved_block_code: [u8; 4],
+	/// SDNA struct index of the resolved block.
 	pub sdna_nr: u32,
+	/// Resolved element index inside block payload.
 	pub element_index: usize,
+	/// Byte offset within the resolved element.
 	pub element_offset: usize,
+	/// Size in bytes of one resolved element.
 	pub struct_size: usize,
+	/// Old pointer base for the resolved block.
 	pub block_old: u64,
 }
 
+/// Resolve a pointer and decode the pointed-to struct element.
 pub fn chase_ptr_to_struct<'a>(dna: &Dna, index: &PointerIndex<'a>, ptr: u64, opt: &DecodeOptions) -> Result<Option<(ChaseMeta, StructValue)>> {
 	if ptr == 0 {
 		return Ok(None);
@@ -50,6 +59,7 @@ pub fn chase_ptr_to_struct<'a>(dna: &Dna, index: &PointerIndex<'a>, ptr: u64, op
 	Ok(Some((meta, value)))
 }
 
+/// Resolve `Scene.camera` to an `Object` struct when available.
 pub fn chase_scene_camera<'a>(
 	file: &'a BlendFile,
 	dna: &Dna,

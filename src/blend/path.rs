@@ -1,17 +1,23 @@
 use crate::blend::{BlendError, Result};
 
+/// One parsed operation in a field path expression.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PathStep {
+	/// Select a named struct field.
 	Field(String),
+	/// Select an array element by zero-based index.
 	Index(usize),
 }
 
+/// Parsed field path expression.
 #[derive(Debug, Clone)]
 pub struct FieldPath {
+	/// Ordered sequence of path steps.
 	pub steps: Vec<PathStep>,
 }
 
 impl FieldPath {
+	/// Parse dotted field syntax with optional `[index]` selectors.
 	pub fn parse(input: &str) -> Result<Self> {
 		if input.is_empty() {
 			return Err(BlendError::InvalidFieldPath { path: input.to_owned() });

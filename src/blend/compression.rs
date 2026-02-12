@@ -4,15 +4,20 @@ use crate::blend::{BlendError, Result};
 
 const BLEND_MAGIC: &[u8] = b"BLENDER";
 const MAX_DECOMPRESSED_BYTES: usize = 512 * 1024 * 1024;
+/// zstd frame magic used by compressed `.blend` files.
 pub const ZSTD_MAGIC: [u8; 4] = [0x28, 0xB5, 0x2F, 0xFD];
 
+/// Compression mode detected for a source file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Compression {
+	/// Raw uncompressed stream.
 	None,
+	/// zstd-compressed stream.
 	Zstd,
 }
 
 impl Compression {
+	/// Render compression mode as a stable lowercase label.
 	pub fn as_str(self) -> &'static str {
 		match self {
 			Self::None => "none",
@@ -21,6 +26,7 @@ impl Compression {
 	}
 }
 
+/// Detect and decode compression, returning `(mode, decoded_bytes)`.
 pub fn decode_bytes(raw: Vec<u8>) -> Result<(Compression, Vec<u8>)> {
 	if raw.starts_with(BLEND_MAGIC) {
 		return Ok((Compression::None, raw));

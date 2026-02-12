@@ -4,12 +4,18 @@ use crate::blend::{BlendError, Block, Dna, Result};
 
 const POINTER_SIZE: usize = 8;
 
+/// Runtime limits and behavior switches for SDNA decoding.
 #[derive(Debug, Clone)]
 pub struct DecodeOptions {
+	/// Maximum recursive struct nesting depth.
 	pub max_depth: u32,
+	/// Maximum allowed array element count.
 	pub max_array_elems: usize,
+	/// Keep padding-like fields instead of skipping them.
 	pub include_padding: bool,
+	/// Convert `char[N]` fields to strings when possible.
 	pub decode_char_arrays_as_string: bool,
+	/// Error when decoded bytes do not consume full struct layout.
 	pub strict_layout: bool,
 }
 
@@ -26,6 +32,7 @@ impl Default for DecodeOptions {
 }
 
 impl DecodeOptions {
+	/// Preset tuned for scene-level inspection output.
 	pub fn for_scene_inspect() -> Self {
 		Self {
 			max_depth: 8,
@@ -37,6 +44,7 @@ impl DecodeOptions {
 	}
 }
 
+/// Decode all instances contained in a block payload.
 pub fn decode_block_instances(dna: &Dna, block: &Block<'_>, opt: &DecodeOptions) -> Result<Value> {
 	let sdna_nr = block.head.sdna_nr;
 	let struct_def = dna.struct_by_sdna(sdna_nr).ok_or(BlendError::DecodeMissingSdna { sdna_nr })?;
@@ -79,6 +87,7 @@ pub fn decode_block_instances(dna: &Dna, block: &Block<'_>, opt: &DecodeOptions)
 	}
 }
 
+/// Decode one struct instance from raw bytes using SDNA index.
 pub fn decode_struct_instance(dna: &Dna, sdna_nr: u32, bytes: &[u8], opt: &DecodeOptions) -> Result<StructValue> {
 	decode_struct_impl(dna, sdna_nr, bytes, opt, 0)
 }

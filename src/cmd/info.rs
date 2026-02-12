@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use blendoc::blend::{BlendFile, Result};
 
+/// Print high-level file and block statistics.
 pub fn run(path: PathBuf) -> Result<()> {
 	let blend = BlendFile::open(&path)?;
 	let stats = blend.scan_block_stats()?;

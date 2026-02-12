@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use blendoc::blend::{BlendFile, DecodeOptions, Value, chase_scene_camera};
 
+/// Resolve and print the active scene camera target, if present.
 pub fn run(path: PathBuf) -> blendoc::blend::Result<()> {
 	let blend = BlendFile::open(&path)?;
 	let dna = blend.dna()?;

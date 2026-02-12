@@ -2,11 +2,16 @@ use std::path::PathBuf;
 
 use blendoc::blend::{BlendError, BlendFile, DecodeOptions, Value, decode_block_instances};
 
+/// Output truncation and formatting limits for decoded values.
 #[derive(Debug, Clone, Copy)]
 pub struct PrintOptions {
+	/// Maximum number of fields printed for a single struct.
 	pub max_fields_per_struct: usize,
+	/// Maximum number of Unicode scalar values printed for strings.
 	pub max_string_len: usize,
+	/// Maximum number of elements printed for arrays.
 	pub max_array_items: usize,
+	/// Maximum recursive print depth for nested arrays/structs.
 	pub max_print_depth: u32,
 }
 
@@ -22,6 +27,7 @@ impl Default for PrintOptions {
 }
 
 impl PrintOptions {
+	/// Preset tuned for scene-sized output.
 	pub fn for_scene_inspect() -> Self {
 		Self {
 			max_fields_per_struct: 40,
@@ -32,11 +38,13 @@ impl PrintOptions {
 	}
 }
 
+/// Decode and print the first block matching `code`.
 pub fn run(path: PathBuf, code: String) -> blendoc::blend::Result<()> {
 	let block_code = parse_block_code(&code)?;
 	run_with_code(path, block_code, DecodeOptions::default(), PrintOptions::default())
 }
 
+/// Decode and print the first block matching a binary block code.
 pub fn run_with_code(path: PathBuf, block_code: [u8; 4], decode_options: DecodeOptions, print_options: PrintOptions) -> blendoc::blend::Result<()> {
 	let blend = BlendFile::open(&path)?;
 	let dna = blend.dna()?;

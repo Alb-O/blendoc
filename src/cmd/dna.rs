@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use blendoc::blend::{BlendError, BlendFile, DnaStruct, Result};
 
+/// Print SDNA table counts and optional struct field listing.
 pub fn run(path: PathBuf, struct_name: Option<String>) -> Result<()> {
 	let blend = BlendFile::open(&path)?;
 	let dna = blend.dna()?;

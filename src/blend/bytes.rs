@@ -1,23 +1,28 @@
 use crate::blend::{BlendError, Result};
 
+/// Simple bounded cursor over an immutable byte slice.
 pub struct Cursor<'a> {
 	bytes: &'a [u8],
 	pos: usize,
 }
 
 impl<'a> Cursor<'a> {
+	/// Create a cursor at position 0.
 	pub fn new(bytes: &'a [u8]) -> Self {
 		Self { bytes, pos: 0 }
 	}
 
+	/// Return current byte offset.
 	pub fn pos(&self) -> usize {
 		self.pos
 	}
 
+	/// Return remaining unread bytes.
 	pub fn remaining(&self) -> usize {
 		self.bytes.len().saturating_sub(self.pos)
 	}
 
+	/// Read exactly `n` bytes and advance cursor.
 	pub fn read_exact(&mut self, n: usize) -> Result<&'a [u8]> {
 		if n > self.remaining() {
 			return Err(BlendError::UnexpectedEof {
@@ -32,6 +37,7 @@ impl<'a> Cursor<'a> {
 		Ok(&self.bytes[start..self.pos])
 	}
 
+	/// Read a four-byte code.
 	pub fn read_code4(&mut self) -> Result<[u8; 4]> {
 		let raw = self.read_exact(4)?;
 		let mut out = [0_u8; 4];
@@ -39,6 +45,7 @@ impl<'a> Cursor<'a> {
 		Ok(out)
 	}
 
+	/// Read a little-endian `u16`.
 	pub fn read_u16_le(&mut self) -> Result<u16> {
 		let raw = self.read_exact(2)?;
 		let mut buf = [0_u8; 2];
@@ -46,6 +53,7 @@ impl<'a> Cursor<'a> {
 		Ok(u16::from_le_bytes(buf))
 	}
 
+	/// Read a little-endian `u32`.
 	pub fn read_u32_le(&mut self) -> Result<u32> {
 		let raw = self.read_exact(4)?;
 		let mut buf = [0_u8; 4];
@@ -53,6 +61,7 @@ impl<'a> Cursor<'a> {
 		Ok(u32::from_le_bytes(buf))
 	}
 
+	/// Read a little-endian `u64`.
 	pub fn read_u64_le(&mut self) -> Result<u64> {
 		let raw = self.read_exact(8)?;
 		let mut buf = [0_u8; 8];
@@ -60,6 +69,7 @@ impl<'a> Cursor<'a> {
 		Ok(u64::from_le_bytes(buf))
 	}
 
+	/// Read a little-endian `i64`.
 	pub fn read_i64_le(&mut self) -> Result<i64> {
 		let raw = self.read_exact(8)?;
 		let mut buf = [0_u8; 8];
@@ -67,6 +77,7 @@ impl<'a> Cursor<'a> {
 		Ok(i64::from_le_bytes(buf))
 	}
 
+	/// Advance to the next 4-byte aligned position.
 	pub fn align4(&mut self) -> Result<()> {
 		let aligned = (self.pos + 3) & !3;
 		let skip = aligned.saturating_sub(self.pos);
@@ -74,6 +85,7 @@ impl<'a> Cursor<'a> {
 		Ok(())
 	}
 
+	/// Read a zero-terminated byte string without the terminator.
 	pub fn read_cstring_bytes(&mut self) -> Result<&'a [u8]> {
 		let start = self.pos;
 		let rem = &self.bytes[self.pos..];

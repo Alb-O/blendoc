@@ -1,15 +1,21 @@
 use crate::blend::{BlendError, Result};
 
+/// Parsed Blender 5+ file header fields.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BlendHeader {
+	/// Total file header size in bytes.
 	pub header_size: usize,
+	/// Blend container format version.
 	pub format_version: u16,
+	/// Blender version encoded as decimal digits (for example `500`).
 	pub version: u16,
 }
 
 impl BlendHeader {
+	/// Minimum number of bytes required for the modern header prefix.
 	pub const MIN_SIZE: usize = 17;
 
+	/// Parse a Blender 5+ header from the beginning of `bytes`.
 	pub fn parse(bytes: &[u8]) -> Result<Self> {
 		let header = bytes.get(0..Self::MIN_SIZE).ok_or(BlendError::InvalidHeader)?;
 		if &header[0..7] != b"BLENDER" {
