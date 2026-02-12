@@ -4,6 +4,12 @@ Rust tooling for reverse engineering Blender `.blend` files, scoped to Blender 5
 
 This project is intentionally format-focused. It implements parsing, schema decoding (SDNA), pointer resolution, and controlled pointer/path traversal over real fixture files.
 
+## Workspace layout
+
+- `crates/blendoc_core`: core library crate (published as `blendoc`).
+- `crates/blendoc_cli`: `blendoc` CLI binary and command wiring.
+- `tools/blendoc_blendfiles_downloader`: fixture downloader utility.
+
 ## Scope and assumptions
 
 - Target format: Blender file-format v1 headers (`BLENDER17-01v0500` and newer).
@@ -23,12 +29,12 @@ Out of scope right now:
 
 The implementation is split into explicit layers:
 
-1. **Input + compression** (`src/blend/compression.rs`)
+1. **Input + compression** (`crates/blendoc_core/src/blend/compression.rs`)
    - Detects `BLENDER` magic (raw) or zstd frame magic (`28 B5 2F FD`).
    - Decompresses zstd with an explicit output cap.
    - Verifies decompressed stream begins with `BLENDER`.
 
-2. **Header parse** (`src/blend/header.rs`)
+2. **Header parse** (`crates/blendoc_core/src/blend/header.rs`)
    - Parses v1 header fields:
      - header size
      - format version
@@ -36,7 +42,7 @@ The implementation is split into explicit layers:
    - Enforces v1 and Blender `>= 500`.
    - Enforces little-endian marker.
 
-3. **Block iteration** (`src/blend/bhead.rs`, `src/blend/block.rs`)
+3. **Block iteration** (`crates/blendoc_core/src/blend/bhead.rs`, `crates/blendoc_core/src/blend/block.rs`)
    - Parses `LargeBHead8` as:
      - `code [u8;4]`
      - `sdna_nr u32`
@@ -45,13 +51,13 @@ The implementation is split into explicit layers:
      - `nr i64` (validated non-negative)
    - Yields safe `Block` views with payload slices and file offsets.
 
-4. **DNA/SDNA parse** (`src/blend/dna.rs`)
+4. **DNA/SDNA parse** (`crates/blendoc_core/src/blend/dna/mod.rs`)
    - Parses `SDNA` sections: `NAME`, `TYPE`, `TLEN`, `STRC`.
    - Handles 4-byte alignment boundaries.
    - Validates type/name indices.
    - Builds fast type->struct lookup (`struct_for_type`).
 
-5. **Typed decode** (`src/blend/decode.rs`, `src/blend/value.rs`)
+5. **Typed decode** (`crates/blendoc_core/src/blend/decode/mod.rs`, `crates/blendoc_core/src/blend/value.rs`)
    - Decodes struct instances from SDNA metadata.
    - Supports field declarators:
      - pointers (`*field`)
@@ -64,7 +70,7 @@ The implementation is split into explicit layers:
      - payload size precheck
      - optional strict layout check
 
-6. **Pointer indexing and typed resolution** (`src/blend/pointer.rs`)
+6. **Pointer indexing and typed resolution** (`crates/blendoc_core/src/blend/pointer/mod.rs`)
    - Detects pointer storage mode:
      - `address_ranges` (legacy raw runtime pointers)
      - `stable_ids` (opaque stable identifiers written by modern Blender)
@@ -72,7 +78,7 @@ The implementation is split into explicit layers:
    - Uses in-block offset/range fallback only for `address_ranges`.
    - Computes element-level position (`element_index`, `element_offset`) using SDNA sizes.
 
-7. **Pointer chase primitives + path chase** (`src/blend/chase.rs`, `src/blend/path.rs`, `src/blend/chase_path.rs`)
+7. **Pointer chase primitives + path chase** (`crates/blendoc_core/src/blend/chase/mod.rs`, `crates/blendoc_core/src/blend/path.rs`, `crates/blendoc_core/src/blend/chase_path/mod.rs`)
    - One-step pointer chase into decoded struct instances.
    - Scene-specific convenience chase (`Scene.camera`, etc.).
    - Generic field path traversal with pointer auto-deref:
@@ -148,35 +154,35 @@ All commands are under the `blendoc` binary:
 Examples:
 
 ```bash
-nix develop -c cargo run -- info fixtures/character.blend
-nix develop -c cargo run -- info fixtures/v5.1_character.blend --json
-nix develop -c cargo run -- dna fixtures/character.blend --struct Scene
-nix develop -c cargo run -- decode fixtures/character.blend --code GLOB
-nix develop -c cargo run -- scene fixtures/character.blend
-nix develop -c cargo run -- camera fixtures/character.blend
-nix develop -c cargo run -- libs fixtures/character.blend --json
-nix develop -c cargo run -- chase fixtures/character.blend --code SC --path world
-nix develop -c cargo run -- refs fixtures/character.blend --id SCScene --depth 1
-nix develop -c cargo run -- graph fixtures/character.blend --id SCScene --depth 1 --refs-depth 1
-nix develop -c cargo run -- xref fixtures/character.blend --id WOWorld --limit 10
-nix develop -c cargo run -- route fixtures/character.blend --from-id SCScene --to-id WOWorld --depth 3 --refs-depth 1
-nix develop -c cargo run -- idgraph fixtures/character.blend --refs-depth 1 --max-edges 200
-nix develop -c cargo run -- show fixtures/character.blend --id WOWorld
-nix develop -c cargo run -- show fixtures/character.blend --id WOWorld --expand-depth 1
-nix develop -c cargo run -- walk fixtures/character.blend --id SCScene --next id.next --limit 20
+nix develop -c cargo run -p blendoc_cli -- info fixtures/character.blend
+nix develop -c cargo run -p blendoc_cli -- info fixtures/v5.1_character.blend --json
+nix develop -c cargo run -p blendoc_cli -- dna fixtures/character.blend --struct Scene
+nix develop -c cargo run -p blendoc_cli -- decode fixtures/character.blend --code GLOB
+nix develop -c cargo run -p blendoc_cli -- scene fixtures/character.blend
+nix develop -c cargo run -p blendoc_cli -- camera fixtures/character.blend
+nix develop -c cargo run -p blendoc_cli -- libs fixtures/character.blend --json
+nix develop -c cargo run -p blendoc_cli -- chase fixtures/character.blend --code SC --path world
+nix develop -c cargo run -p blendoc_cli -- refs fixtures/character.blend --id SCScene --depth 1
+nix develop -c cargo run -p blendoc_cli -- graph fixtures/character.blend --id SCScene --depth 1 --refs-depth 1
+nix develop -c cargo run -p blendoc_cli -- xref fixtures/character.blend --id WOWorld --limit 10
+nix develop -c cargo run -p blendoc_cli -- route fixtures/character.blend --from-id SCScene --to-id WOWorld --depth 3 --refs-depth 1
+nix develop -c cargo run -p blendoc_cli -- idgraph fixtures/character.blend --refs-depth 1 --max-edges 200
+nix develop -c cargo run -p blendoc_cli -- show fixtures/character.blend --id WOWorld
+nix develop -c cargo run -p blendoc_cli -- show fixtures/character.blend --id WOWorld --expand-depth 1
+nix develop -c cargo run -p blendoc_cli -- walk fixtures/character.blend --id SCScene --next id.next --limit 20
 ```
 
 Example fixture comparison snippet:
 
 ```bash
-nix develop -c cargo run -- info fixtures/v5.1_character.blend --json > /tmp/char.json
-nix develop -c cargo run -- info fixtures/v5.1_sword.blend --json > /tmp/sword.json
+nix develop -c cargo run -p blendoc_cli -- info fixtures/v5.1_character.blend --json > /tmp/char.json
+nix develop -c cargo run -p blendoc_cli -- info fixtures/v5.1_sword.blend --json > /tmp/sword.json
 jq '{path, version, pointer_storage, pointer_diagnostics}' /tmp/char.json /tmp/sword.json
 ```
 
 ## Library entry points
 
-Main types are re-exported through `blendoc::blend` (`src/blend/mod.rs`).
+Main types are re-exported through `blendoc::blend` (`crates/blendoc_core/src/blend/mod.rs`).
 
 Core entry points:
 
@@ -239,20 +245,20 @@ Typical loop:
 
 ```bash
 nix develop -c cargo fmt
-nix develop -c cargo test
+nix develop -c cargo test --workspace
 ```
 
 ## Test coverage (current)
 
 Fixture and unit tests cover:
 
-- header/block/decompression smoke checks (`tests/fixtures_day1.rs`)
-- SDNA parse sanity (`tests/fixtures_day2_dna.rs`)
-- typed decode sanity + strict-layout checks (`tests/fixtures_day3_decode.rs`, `tests/fixtures_day3_scene.rs`)
-- pointer index and typed pointer resolution (`tests/fixtures_day4_pointers.rs`)
-- one-step chase behavior (camera/world) (`tests/fixtures_day4_chase_camera.rs`)
-- generic field-path chase (`tests/fixtures_day4_chase_path.rs`)
-- synthetic cycle guard behavior (`tests/unit_chase_cycle.rs`)
+- header/block/decompression smoke checks (`crates/blendoc_core/src/blend/file/tests.rs`)
+- SDNA parse sanity (`crates/blendoc_core/src/blend/dna/tests.rs`)
+- typed decode sanity + strict-layout checks (`crates/blendoc_core/src/blend/decode/tests.rs`)
+- pointer index and typed pointer resolution (`crates/blendoc_core/src/blend/pointer/tests.rs`)
+- one-step chase behavior (camera/world) (`crates/blendoc_core/src/blend/chase/tests.rs`)
+- generic field-path chase (`crates/blendoc_core/src/blend/chase_path/tests.rs`)
+- synthetic cycle guard behavior (`crates/blendoc_core/src/blend/chase_path/tests.rs`)
 
 ## Known behavior in current fixtures
 
