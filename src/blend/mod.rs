@@ -13,6 +13,7 @@ mod graph;
 mod header;
 mod id;
 mod idgraph;
+mod liblink;
 mod path;
 mod pointer;
 mod refs;
@@ -47,6 +48,8 @@ pub use header::BlendHeader;
 pub use id::{IdIndex, IdRecord, scan_id_blocks};
 /// Whole-file ID graph extraction types and entry points.
 pub use idgraph::{IdGraphEdge, IdGraphNode, IdGraphOptions, IdGraphResult, IdGraphTruncation, build_id_graph};
+/// Linked-library provenance records and scan helpers.
+pub use liblink::{IdLinkProvenance, LibraryRecord, LinkConfidence, LinkSignal, scan_id_link_provenance, scan_library_records};
 /// Field path parser types.
 pub use path::{FieldPath, PathStep};
 /// Pointer index and resolution types.

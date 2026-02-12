@@ -1,6 +1,7 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 
-use blendoc::blend::{BlendFile, IdRecord, Result, scan_id_blocks};
+use blendoc::blend::{BlendFile, IdRecord, Result, scan_id_blocks, scan_id_link_provenance};
 
 use crate::cmd::util::{emit_json, parse_block_code, ptr_hex, ptr_hex_opt, render_code};
 
@@ -13,6 +14,8 @@ pub struct Args {
 	pub type_name: Option<String>,
 	#[arg(long)]
 	pub limit: Option<usize>,
+	#[arg(long = "verbose-links")]
+	pub verbose_links: bool,
 	#[arg(long)]
 	pub json: bool,
 }
@@ -24,6 +27,7 @@ pub fn run(args: Args) -> Result<()> {
 		code,
 		type_name,
 		limit,
+		verbose_links,
 		json,
 	} = args;
 
@@ -47,26 +51,60 @@ pub fn run(args: Args) -> Result<()> {
 		rows.truncate(max);
 	}
 
+	let link_by_ptr = if json || verbose_links {
+		let links = scan_id_link_provenance(&blend, &dna)?;
+		links
+			.into_iter()
+			.map(|item| (item.id_ptr, (item.linked, item.confidence.as_str().to_owned())))
+			.collect::<HashMap<_, _>>()
+	} else {
+		HashMap::new()
+	};
+
 	if json {
-		print_json_rows(&rows);
+		print_json_rows(&rows, Some(&link_by_ptr));
 		return Ok(());
 	}
 
 	println!("path: {}", path.display());
 	println!("ids: {}", rows.len());
-	println!("old_ptr\tcode\tsdna\ttype\tid_name\tnext\tprev\tlib");
+	if verbose_links {
+		println!("old_ptr\tcode\tsdna\ttype\tid_name\tnext\tprev\tlib\tlinked\tlink_confidence");
+	} else {
+		println!("old_ptr\tcode\tsdna\ttype\tid_name\tnext\tprev\tlib");
+	}
 	for row in rows {
-		println!(
-			"0x{:016x}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-			row.old_ptr,
-			render_code(row.code),
-			row.sdna_nr,
-			row.type_name,
-			row.id_name,
-			format_ptr(row.next),
-			format_ptr(row.prev),
-			format_ptr(row.lib)
-		);
+		if verbose_links {
+			let (linked, confidence) = link_by_ptr
+				.get(&row.old_ptr)
+				.map(|(linked, confidence)| (*linked, confidence.as_str()))
+				.unwrap_or((false, "none"));
+			println!(
+				"0x{:016x}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+				row.old_ptr,
+				render_code(row.code),
+				row.sdna_nr,
+				row.type_name,
+				row.id_name,
+				format_ptr(row.next),
+				format_ptr(row.prev),
+				format_ptr(row.lib),
+				linked,
+				confidence
+			);
+		} else {
+			println!(
+				"0x{:016x}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+				row.old_ptr,
+				render_code(row.code),
+				row.sdna_nr,
+				row.type_name,
+				row.id_name,
+				format_ptr(row.next),
+				format_ptr(row.prev),
+				format_ptr(row.lib)
+			);
+		}
 	}
 
 	Ok(())
@@ -87,12 +125,16 @@ struct IdRowJson {
 	#[serde(rename = "type")]
 	type_name: String,
 	id_name: String,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	linked: Option<bool>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	link_confidence: Option<String>,
 	next: Option<String>,
 	prev: Option<String>,
 	lib: Option<String>,
 }
 
-fn print_json_rows(rows: &[IdRecord]) {
+fn print_json_rows(rows: &[IdRecord], link_by_ptr: Option<&HashMap<u64, (bool, String)>>) {
 	let body: Vec<IdRowJson> = rows
 		.iter()
 		.map(|row| IdRowJson {
@@ -101,6 +143,8 @@ fn print_json_rows(rows: &[IdRecord]) {
 			sdna_nr: row.sdna_nr,
 			type_name: row.type_name.to_string(),
 			id_name: row.id_name.to_string(),
+			linked: link_by_ptr.and_then(|item| item.get(&row.old_ptr)).map(|(linked, _)| *linked),
+			link_confidence: link_by_ptr.and_then(|item| item.get(&row.old_ptr)).map(|(_, confidence)| confidence.clone()),
 			next: ptr_hex_opt(row.next),
 			prev: ptr_hex_opt(row.prev),
 			lib: ptr_hex_opt(row.lib),

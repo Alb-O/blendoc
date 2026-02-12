@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use blendoc::blend::{BlendError, BlendFile, IdIndex, RefRecord, RefScanOptions, scan_id_blocks, scan_refs_from_ptr};
+use blendoc::blend::{BlendError, BlendFile, IdIndex, RefRecord, RefScanOptions, scan_id_blocks, scan_id_link_provenance, scan_refs_from_ptr};
 
 use crate::cmd::util::{RootSelector, emit_json, parse_root_selector, ptr_hex, render_code};
 
@@ -64,8 +64,19 @@ pub fn run(args: Args) -> blendoc::blend::Result<()> {
 		refs.truncate(max);
 	}
 
+	let root_link = if json {
+		let links = scan_id_link_provenance(&blend, &dna)?;
+		let canonical = index.canonical_ptr(&dna, root_ptr).unwrap_or(root_ptr);
+		links
+			.iter()
+			.find(|item| item.id_ptr == canonical)
+			.map(|item| (item.linked, item.confidence.as_str()))
+	} else {
+		None
+	};
+
 	if json {
-		print_json(&path, &root_label, root_ptr, &refs);
+		print_json(&path, &root_label, root_ptr, &refs, root_link);
 		return Ok(());
 	}
 
@@ -94,11 +105,13 @@ pub fn run(args: Args) -> blendoc::blend::Result<()> {
 	Ok(())
 }
 
-fn print_json(path: &std::path::Path, root_label: &str, root_ptr: u64, refs: &[RefRecord]) {
+fn print_json(path: &std::path::Path, root_label: &str, root_ptr: u64, refs: &[RefRecord], root_link: Option<(bool, &str)>) {
 	let payload = RefsJson {
 		path: path.display().to_string(),
 		root: root_label.to_owned(),
 		root_ptr: ptr_hex(root_ptr),
+		owner_linked: root_link.map(|item| item.0),
+		owner_link_confidence: root_link.map(|item| item.1.to_owned()),
 		refs: refs
 			.iter()
 			.map(|record| {
@@ -135,6 +148,10 @@ struct RefsJson {
 	path: String,
 	root: String,
 	root_ptr: String,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	owner_linked: Option<bool>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	owner_link_confidence: Option<String>,
 	refs: Vec<RefJson>,
 }
 

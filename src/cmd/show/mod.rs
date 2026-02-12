@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
-use blendoc::blend::{BlendError, BlendFile, ChasePolicy, DecodeOptions, FieldPath, IdIndex, Value, chase_from_ptr, decode_ptr_instance, scan_id_blocks};
+use blendoc::blend::{
+	BlendError, BlendFile, ChasePolicy, DecodeOptions, FieldPath, IdIndex, Value, chase_from_ptr, decode_ptr_instance, scan_id_blocks, scan_id_link_provenance,
+};
 
 use crate::cmd::print::{PrintCtx, PrintOptions, PtrAnnotCtx, print_value};
 use crate::cmd::util::{RootSelector, emit_json, parse_root_selector, ptr_hex, render_code};
@@ -107,20 +109,29 @@ pub fn run(args: Args) -> blendoc::blend::Result<()> {
 		expand_max_nodes,
 	);
 
+	let root_link = if json {
+		let links = scan_id_link_provenance(&blend, &dna)?;
+		let root_canonical = index.canonical_ptr(&dna, root_ptr).unwrap_or(root_ptr);
+		links
+			.iter()
+			.find(|item| item.id_ptr == root_canonical)
+			.map(|item| (item.linked, item.confidence.as_str().to_owned()))
+	} else {
+		None
+	};
+
 	if let Some(path_expr) = path_expr {
 		let field_path = FieldPath::parse(&path_expr)?;
 		let result = chase_from_ptr(&dna, &index, root_ptr, &field_path, &decode, &ChasePolicy::default())?;
+		let json_root = JsonRootMeta {
+			path: &path,
+			root_label: &root_label,
+			root_ptr,
+			root_link: root_link.as_ref(),
+		};
 
 		if json {
-			print_json_path(
-				&path,
-				&root_label,
-				root_ptr,
-				&path_expr,
-				&result.value,
-				result.stop.as_ref(),
-				trace.then_some(&result.hops),
-			);
+			print_json_path(&json_root, &path_expr, &result.value, result.stop.as_ref(), trace.then_some(&result.hops));
 			return Ok(());
 		}
 
@@ -158,7 +169,16 @@ pub fn run(args: Args) -> blendoc::blend::Result<()> {
 
 	if json {
 		let value = Value::Struct(struct_value);
-		print_json_struct(&path, &root_label, root_ptr, canonical, node_id, &value);
+		let canonical_link = root_link
+			.as_ref()
+			.filter(|_| canonical == index.canonical_ptr(&dna, root_ptr).unwrap_or(root_ptr));
+		let json_root = JsonRootMeta {
+			path: &path,
+			root_label: &root_label,
+			root_ptr,
+			root_link: canonical_link,
+		};
+		print_json_struct(&json_root, canonical, node_id, &value);
 		return Ok(());
 	}
 
@@ -173,13 +193,15 @@ pub fn run(args: Args) -> blendoc::blend::Result<()> {
 	Ok(())
 }
 
-fn print_json_struct(path: &std::path::Path, root_label: &str, root_ptr: u64, canonical: u64, id_name: Option<&str>, value: &Value) {
+fn print_json_struct(root: &JsonRootMeta<'_>, canonical: u64, id_name: Option<&str>, value: &Value) {
 	let payload = ShowStructJson {
-		path: path.display().to_string(),
-		root: root_label.to_owned(),
-		root_ptr: ptr_hex(root_ptr),
+		path: root.path.display().to_string(),
+		root: root.root_label.to_owned(),
+		root_ptr: ptr_hex(root.root_ptr),
 		canonical: ptr_hex(canonical),
 		id_name: id_name.map(str::to_owned),
+		root_linked: root.root_link.map(|item| item.0),
+		root_link_confidence: root.root_link.map(|item| item.1.clone()),
 		value: value_to_json_value(value),
 	};
 
@@ -187,19 +209,19 @@ fn print_json_struct(path: &std::path::Path, root_label: &str, root_ptr: u64, ca
 }
 
 fn print_json_path(
-	path: &std::path::Path,
-	root_label: &str,
-	root_ptr: u64,
+	root: &JsonRootMeta<'_>,
 	path_expr: &str,
 	value: &Value,
 	stop: Option<&blendoc::blend::ChaseStop>,
 	hops: Option<&Vec<blendoc::blend::ChaseMeta>>,
 ) {
 	let payload = ShowPathJson {
-		path: path.display().to_string(),
-		root: root_label.to_owned(),
-		root_ptr: ptr_hex(root_ptr),
+		path: root.path.display().to_string(),
+		root: root.root_label.to_owned(),
+		root_ptr: ptr_hex(root.root_ptr),
 		path_expr: path_expr.to_owned(),
+		root_linked: root.root_link.map(|item| item.0),
+		root_link_confidence: root.root_link.map(|item| item.1.clone()),
 		value: value_to_json_value(value),
 		stop: stop.map(|stop| ShowStopJson {
 			step: stop.step_index,
@@ -220,6 +242,13 @@ fn print_json_path(
 	};
 
 	emit_json(&payload);
+}
+
+struct JsonRootMeta<'a> {
+	path: &'a std::path::Path,
+	root_label: &'a str,
+	root_ptr: u64,
+	root_link: Option<&'a (bool, String)>,
 }
 
 fn value_to_json_value(value: &Value) -> serde_json::Value {
@@ -264,6 +293,10 @@ struct ShowStructJson {
 	root_ptr: String,
 	canonical: String,
 	id_name: Option<String>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	root_linked: Option<bool>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	root_link_confidence: Option<String>,
 	value: serde_json::Value,
 }
 
@@ -288,6 +321,10 @@ struct ShowPathJson {
 	root: String,
 	root_ptr: String,
 	path_expr: String,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	root_linked: Option<bool>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	root_link_confidence: Option<String>,
 	value: serde_json::Value,
 	stop: Option<ShowStopJson>,
 	hops: Option<Vec<ShowHopJson>>,

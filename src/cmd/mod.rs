@@ -14,6 +14,8 @@ pub mod idgraph;
 pub mod ids;
 /// File-level information command.
 pub mod info;
+/// Linked-library provenance command.
+pub mod libs;
 /// Shared decoded-value printer and pointer annotation helpers.
 pub mod print;
 /// Pointer reference scanning command.
