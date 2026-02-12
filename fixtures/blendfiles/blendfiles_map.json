@@ -1,0 +1,36 @@
+{
+  "simple": {
+    "object_modes.blend": "https://projects.blender.org/blender/blender-test-data/media/branch/main/screenshot/viewport/object_modes.blend"
+  },
+  "many_cubes_bench": {
+    "30k_cubes_diff_meshes.blend": "https://projects.blender.org/blender/blender-benchmarks/media/branch/main/eevee/30k_cubes_diff_meshes/30k_cubes_diff_meshes.blend",
+    "60k_cubes_same_mesh.blend": "https://projects.blender.org/blender/blender-benchmarks/media/branch/main/eevee/60k_cubes_same_mesh/60k_cubes_same_mesh.blend"
+  },
+  "shaderball": {
+    "shaderball.blend": "https://projects.blender.org/blender/blender-benchmarks/media/branch/main/docs/shaderball/shaderball.blend",
+    "textures/brown_photostudio_02_4k.exr": "https://projects.blender.org/blender/blender-benchmarks/media/branch/main/docs/shaderball/textures/brown_photostudio_02_4k.exr",
+    "textures/Checker_Tensel_Density_Checker_Mask.png": "https://projects.blender.org/blender/blender-benchmarks/media/branch/main/docs/shaderball/textures/Checker_Tensel_Density_Checker_Mask.png",
+    "textures/Color chart_Colors.tiff": "https://projects.blender.org/blender/blender-benchmarks/media/branch/main/docs/shaderball/textures/Color%20chart_Colors.tiff"
+  },
+  "ellie": {
+    "ellie.blend": "https://studio.blender.org/download-source/files/01/01a02cb0fed8e700b38bdaf7b4ef75df/01a02cb0fed8e700b38bdaf7b4ef75df.blend",
+    "Shot_Ellie_Birdspotting.blend": "https://studio.blender.org/download-source/files/69/6911fa9bcf4acc96bca3b8440b06b109/6911fa9bcf4acc96bca3b8440b06b109.blend"
+  },
+  "geometry_nodes": {
+    "procedural_hair_node_assets.blend": "https://projects.blender.org/blender/blender-assets/media/branch/main/publish/geometry_nodes/procedural_hair_node_assets.blend",
+    "smooth_by_angle.blend": "https://projects.blender.org/blender/blender-assets/media/branch/main/publish/geometry_nodes/smooth_by_angle.blend",
+    "large_nested_field_test.blend": "https://projects.blender.org/blender/blender-benchmarks/media/branch/main/geometry_nodes/many_nodes_test_files/large_nested_field_test.blend",
+    "many_math_nodes.blend": "https://projects.blender.org/blender/blender-benchmarks/media/branch/main/geometry_nodes/many_nodes_test_files/many_math_nodes.blend"
+  },
+  "brushes": {
+    "essentials_brushes-curve_sculpt.blend": "https://projects.blender.org/blender/blender-assets/media/branch/main/publish/brushes/essentials_brushes-curve_sculpt.blend",
+    "essentials_brushes-gp_vertex.blend": "https://projects.blender.org/blender/blender-assets/media/branch/main/publish/brushes/essentials_brushes-gp_vertex.blend"
+  },
+  "invalid_blendfiles": {
+    "invalid_ca_la_id_code.blend": "https://projects.blender.org/blender/blender-test-data/media/branch/main/invalid_blendfiles/invalid_ca_la_id_code.blend"
+  },
+  "sound": {
+    "main.blend": "https://projects.blender.org/blender/blender-test-data/media/branch/main/sound/main.blend",
+    "pink_panther.ogg": "https://projects.blender.org/blender/blender-test-data/media/branch/main/sound/pink_panther.ogg"
+  }
+}

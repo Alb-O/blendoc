@@ -1,0 +1,7 @@
+# Ignore downloaded fixture payloads; keep fixture index docs tracked.
+*
+!.gitignore
+!README.md
+!blendfiles_map.json
+!invalid_blendfiles/
+!invalid_blendfiles/README.md
