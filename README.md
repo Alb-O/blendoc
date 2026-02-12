@@ -83,8 +83,9 @@ The implementation is split into explicit layers:
 
 All commands are under the `blendoc` binary:
 
-- `blendoc info <file>`
-  - header summary, pointer storage mode, block count, top block codes.
+- `blendoc info <file> [--json]`
+  - header summary, pointer storage mode, pointer-ID diagnostics, block count, top block codes.
+  - `--json` emits a machine-readable payload for fixture diff/comparison workflows.
 
 - `blendoc dna <file> [--struct <Name>]`
   - SDNA table counts and optional struct field dump.
@@ -140,6 +141,7 @@ Examples:
 
 ```bash
 nix develop -c cargo run -- info fixtures/character.blend
+nix develop -c cargo run -- info fixtures/v5.1_character.blend --json
 nix develop -c cargo run -- dna fixtures/character.blend --struct Scene
 nix develop -c cargo run -- decode fixtures/character.blend --code GLOB
 nix develop -c cargo run -- scene fixtures/character.blend
@@ -153,6 +155,14 @@ nix develop -c cargo run -- idgraph fixtures/character.blend --refs-depth 1 --ma
 nix develop -c cargo run -- show fixtures/character.blend --id WOWorld
 nix develop -c cargo run -- show fixtures/character.blend --id WOWorld --expand-depth 1
 nix develop -c cargo run -- walk fixtures/character.blend --id SCScene --next id.next --limit 20
+```
+
+Example fixture comparison snippet:
+
+```bash
+nix develop -c cargo run -- info fixtures/v5.1_character.blend --json > /tmp/char.json
+nix develop -c cargo run -- info fixtures/v5.1_sword.blend --json > /tmp/sword.json
+jq '{path, version, pointer_storage, pointer_diagnostics}' /tmp/char.json /tmp/sword.json
 ```
 
 ## Library entry points
