@@ -5,7 +5,7 @@ use blendoc::blend::{
 	walk_ptr_chain,
 };
 
-use crate::cmd::util::{json_escape, parse_block_code, parse_ptr, render_code, str_json};
+use crate::cmd::util::{RootSelector, json_escape, parse_root_selector, render_code, str_json};
 
 pub struct WalkArgs {
 	pub path: std::path::PathBuf,
@@ -33,7 +33,7 @@ pub fn run(args: WalkArgs) -> blendoc::blend::Result<()> {
 		json,
 	} = args;
 
-	let selector = parse_root_selector(id_name, ptr, code)?;
+	let selector = parse_root_selector(code, ptr, id_name)?;
 
 	let blend = BlendFile::open(&path)?;
 	let dna = blend.dna()?;
@@ -119,31 +119,6 @@ pub fn run(args: WalkArgs) -> blendoc::blend::Result<()> {
 	}
 
 	Ok(())
-}
-
-enum RootSelector {
-	Id(String),
-	Ptr(u64),
-	Code([u8; 4]),
-}
-
-fn parse_root_selector(id_name: Option<String>, ptr: Option<String>, code: Option<String>) -> blendoc::blend::Result<RootSelector> {
-	let supplied = usize::from(id_name.is_some()) + usize::from(ptr.is_some()) + usize::from(code.is_some());
-	if supplied != 1 {
-		return Err(BlendError::InvalidChaseRoot);
-	}
-
-	if let Some(id_name) = id_name {
-		return Ok(RootSelector::Id(id_name));
-	}
-	if let Some(ptr) = ptr {
-		return Ok(RootSelector::Ptr(parse_ptr(&ptr)?));
-	}
-	if let Some(code) = code {
-		return Ok(RootSelector::Code(parse_block_code(&code)?));
-	}
-
-	Err(BlendError::InvalidChaseRoot)
 }
 
 fn canonical_from_hop(hop: &blendoc::blend::ChaseMeta) -> blendoc::blend::Result<u64> {

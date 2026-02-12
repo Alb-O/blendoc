@@ -1,5 +1,18 @@
 use blendoc::blend::{BlendError, Result};
 
+/// Common selector form for roots that accept `--code`, `--ptr`, or `--id`.
+pub(crate) enum RootSelector {
+	Code([u8; 4]),
+	Ptr(u64),
+	Id(String),
+}
+
+/// Common selector form for targets that accept `--ptr` or `--id`.
+pub(crate) enum IdOrPtrSelector {
+	Ptr(u64),
+	Id(String),
+}
+
 /// Parse up-to-4 ASCII block code into padded `[u8; 4]`.
 pub(crate) fn parse_block_code(code: &str) -> Result<[u8; 4]> {
 	if code.is_empty() || code.len() > 4 || !code.is_ascii() {
@@ -20,6 +33,43 @@ pub(crate) fn parse_ptr(value: &str) -> Result<u64> {
 	};
 
 	parsed.map_err(|_| BlendError::InvalidPointerLiteral { value: value.to_owned() })
+}
+
+/// Parse selector requiring exactly one of `--code`, `--ptr`, or `--id`.
+pub(crate) fn parse_root_selector(code: Option<String>, ptr: Option<String>, id_name: Option<String>) -> Result<RootSelector> {
+	let supplied = usize::from(code.is_some()) + usize::from(ptr.is_some()) + usize::from(id_name.is_some());
+	if supplied != 1 {
+		return Err(BlendError::InvalidChaseRoot);
+	}
+
+	if let Some(code) = code {
+		return Ok(RootSelector::Code(parse_block_code(&code)?));
+	}
+	if let Some(ptr) = ptr {
+		return Ok(RootSelector::Ptr(parse_ptr(&ptr)?));
+	}
+	if let Some(id_name) = id_name {
+		return Ok(RootSelector::Id(id_name));
+	}
+
+	Err(BlendError::InvalidChaseRoot)
+}
+
+/// Parse selector requiring exactly one of `--ptr` or `--id`.
+pub(crate) fn parse_id_or_ptr_selector(id_name: Option<String>, ptr: Option<String>) -> Result<IdOrPtrSelector> {
+	let supplied = usize::from(id_name.is_some()) + usize::from(ptr.is_some());
+	if supplied != 1 {
+		return Err(BlendError::InvalidChaseRoot);
+	}
+
+	if let Some(id_name) = id_name {
+		return Ok(IdOrPtrSelector::Id(id_name));
+	}
+	if let Some(ptr) = ptr {
+		return Ok(IdOrPtrSelector::Ptr(parse_ptr(&ptr)?));
+	}
+
+	Err(BlendError::InvalidChaseRoot)
 }
 
 /// Render block code bytes as printable label.
@@ -61,4 +111,17 @@ pub(crate) fn str_json(value: Option<&str>) -> String {
 		Some(item) => format!("\"{item}\""),
 		None => "null".to_owned(),
 	}
+}
+
+/// Render optional pointer as JSON value.
+pub(crate) fn ptr_json(value: Option<u64>) -> String {
+	match value {
+		Some(ptr) => format!("\"0x{ptr:016x}\""),
+		None => "null".to_owned(),
+	}
+}
+
+/// Escape text for Graphviz DOT label values.
+pub(crate) fn dot_escape(input: &str) -> String {
+	input.replace('\\', "\\\\").replace('"', "\\\"")
 }

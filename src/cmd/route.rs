@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use blendoc::blend::{BlendError, BlendFile, IdIndex, RouteOptions, RouteResult, RouteTruncation, find_route_between_ptrs, scan_id_blocks};
 
-use crate::cmd::util::{json_escape, parse_block_code, parse_ptr, render_code, str_json};
+use crate::cmd::util::{IdOrPtrSelector, RootSelector, json_escape, parse_id_or_ptr_selector, parse_root_selector, render_code, str_json};
 
 /// Find and print a shortest pointer route between two endpoints.
 #[allow(clippy::too_many_arguments)]
@@ -20,8 +20,8 @@ pub fn run(
 	max_edges: Option<usize>,
 	json: bool,
 ) -> blendoc::blend::Result<()> {
-	let from_selector = parse_from_selector(from_id, from_ptr, from_code)?;
-	let to_selector = parse_to_selector(to_id, to_ptr)?;
+	let from_selector = parse_root_selector(from_code, from_ptr, from_id)?;
+	let to_selector = parse_id_or_ptr_selector(to_id, to_ptr)?;
 
 	let blend = BlendFile::open(&path)?;
 	let dna = blend.dna()?;
@@ -29,23 +29,23 @@ pub fn run(
 	let ids = IdIndex::build(scan_id_blocks(&blend, &dna)?);
 
 	let (from_ptr, from_label) = match from_selector {
-		FromSelector::Id(name) => {
+		RootSelector::Id(name) => {
 			let row = ids.get_by_name(&name).ok_or(BlendError::IdRecordNotFound { name: name.clone() })?;
 			(row.old_ptr, format!("id:{}", row.id_name))
 		}
-		FromSelector::Ptr(ptr) => (ptr, format!("ptr:0x{ptr:016x}")),
-		FromSelector::Code(code) => {
+		RootSelector::Ptr(ptr) => (ptr, format!("ptr:0x{ptr:016x}")),
+		RootSelector::Code(code) => {
 			let block = blend.find_first_block_by_code(code)?.ok_or(BlendError::BlockNotFound { code })?;
 			(block.head.old, format!("code:{}", render_code(code)))
 		}
 	};
 
 	let (to_ptr, to_label) = match to_selector {
-		ToSelector::Id(name) => {
+		IdOrPtrSelector::Id(name) => {
 			let row = ids.get_by_name(&name).ok_or(BlendError::IdRecordNotFound { name: name.clone() })?;
 			(row.old_ptr, format!("id:{}", row.id_name))
 		}
-		ToSelector::Ptr(ptr) => (ptr, format!("ptr:0x{ptr:016x}")),
+		IdOrPtrSelector::Ptr(ptr) => (ptr, format!("ptr:0x{ptr:016x}")),
 	};
 
 	let mut options = RouteOptions::default();
@@ -116,52 +116,6 @@ struct NodeMeta {
 	canonical: u64,
 	type_name: String,
 	id_name: Option<String>,
-}
-
-enum FromSelector {
-	Id(String),
-	Ptr(u64),
-	Code([u8; 4]),
-}
-
-enum ToSelector {
-	Id(String),
-	Ptr(u64),
-}
-
-fn parse_from_selector(from_id: Option<String>, from_ptr: Option<String>, from_code: Option<String>) -> blendoc::blend::Result<FromSelector> {
-	let supplied = usize::from(from_id.is_some()) + usize::from(from_ptr.is_some()) + usize::from(from_code.is_some());
-	if supplied != 1 {
-		return Err(BlendError::InvalidChaseRoot);
-	}
-
-	if let Some(value) = from_id {
-		return Ok(FromSelector::Id(value));
-	}
-	if let Some(value) = from_ptr {
-		return Ok(FromSelector::Ptr(parse_ptr(&value)?));
-	}
-	if let Some(value) = from_code {
-		return Ok(FromSelector::Code(parse_block_code(&value)?));
-	}
-
-	Err(BlendError::InvalidChaseRoot)
-}
-
-fn parse_to_selector(to_id: Option<String>, to_ptr: Option<String>) -> blendoc::blend::Result<ToSelector> {
-	let supplied = usize::from(to_id.is_some()) + usize::from(to_ptr.is_some());
-	if supplied != 1 {
-		return Err(BlendError::InvalidChaseRoot);
-	}
-
-	if let Some(value) = to_id {
-		return Ok(ToSelector::Id(value));
-	}
-	if let Some(value) = to_ptr {
-		return Ok(ToSelector::Ptr(parse_ptr(&value)?));
-	}
-
-	Err(BlendError::InvalidChaseRoot)
 }
 
 fn resolve_node_meta<'a>(dna: &blendoc::blend::Dna, index: &blendoc::blend::PointerIndex<'a>, ids: &IdIndex, ptr: u64) -> blendoc::blend::Result<NodeMeta> {

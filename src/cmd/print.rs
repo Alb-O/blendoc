@@ -3,6 +3,8 @@ use std::collections::HashMap;
 
 use blendoc::blend::{DecodeOptions, Dna, IdIndex, PointerIndex, StructValue, Value, decode_ptr_instance};
 
+use crate::cmd::util::render_code;
+
 /// Output truncation and formatting limits for decoded values.
 #[derive(Debug, Clone, Copy)]
 pub struct PrintOptions {
@@ -225,21 +227,6 @@ fn format_ptr(ptr: u64, ctx: Option<&PrintCtx<'_>>) -> String {
 
 	ctx.cache.borrow_mut().insert(ptr, rendered.clone());
 	rendered
-}
-
-fn render_code(code: [u8; 4]) -> String {
-	let mut out = String::new();
-	for byte in code {
-		if byte == 0 {
-			continue;
-		}
-		if byte.is_ascii_graphic() || byte == b' ' {
-			out.push(char::from(byte));
-		} else {
-			out.push('.');
-		}
-	}
-	if out.is_empty() { "....".to_owned() } else { out }
 }
 
 fn truncate(input: &str, max_len: usize) -> String {

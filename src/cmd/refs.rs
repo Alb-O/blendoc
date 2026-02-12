@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use blendoc::blend::{BlendError, BlendFile, IdIndex, RefRecord, RefScanOptions, scan_id_blocks, scan_refs_from_ptr};
 
+use crate::cmd::util::{RootSelector, json_escape, parse_root_selector, render_code, str_json};
+
 /// Scan and print pointer references from one selected root struct.
 pub fn run(
 	path: PathBuf,
@@ -73,66 +75,6 @@ pub fn run(
 	Ok(())
 }
 
-enum RootSelector {
-	Code([u8; 4]),
-	Ptr(u64),
-	Id(String),
-}
-
-fn parse_root_selector(code: Option<String>, ptr: Option<String>, id_name: Option<String>) -> blendoc::blend::Result<RootSelector> {
-	let supplied = usize::from(code.is_some()) + usize::from(ptr.is_some()) + usize::from(id_name.is_some());
-	if supplied != 1 {
-		return Err(BlendError::InvalidChaseRoot);
-	}
-
-	if let Some(code) = code {
-		return Ok(RootSelector::Code(parse_block_code(&code)?));
-	}
-	if let Some(ptr) = ptr {
-		return Ok(RootSelector::Ptr(parse_ptr(&ptr)?));
-	}
-	if let Some(id_name) = id_name {
-		return Ok(RootSelector::Id(id_name));
-	}
-
-	Err(BlendError::InvalidChaseRoot)
-}
-
-fn parse_block_code(code: &str) -> blendoc::blend::Result<[u8; 4]> {
-	if code.is_empty() || code.len() > 4 || !code.is_ascii() {
-		return Err(BlendError::InvalidBlockCode { code: code.to_owned() });
-	}
-
-	let mut out = [0_u8; 4];
-	out[..code.len()].copy_from_slice(code.as_bytes());
-	Ok(out)
-}
-
-fn parse_ptr(value: &str) -> blendoc::blend::Result<u64> {
-	let parsed = if let Some(stripped) = value.strip_prefix("0x").or_else(|| value.strip_prefix("0X")) {
-		u64::from_str_radix(stripped, 16)
-	} else {
-		value.parse::<u64>()
-	};
-
-	parsed.map_err(|_| BlendError::InvalidPointerLiteral { value: value.to_owned() })
-}
-
-fn render_code(code: [u8; 4]) -> String {
-	let mut out = String::new();
-	for byte in code {
-		if byte == 0 {
-			continue;
-		}
-		if byte.is_ascii_graphic() || byte == b' ' {
-			out.push(char::from(byte));
-		} else {
-			out.push('.');
-		}
-	}
-	if out.is_empty() { "....".to_owned() } else { out }
-}
-
 fn print_json(path: &std::path::Path, root_label: &str, root_ptr: u64, refs: &[RefRecord]) {
 	println!("{{");
 	println!("  \"path\": \"{}\",", json_escape(&path.display().to_string()));
@@ -164,27 +106,4 @@ fn print_json(path: &std::path::Path, root_label: &str, root_ptr: u64, refs: &[R
 	}
 	println!("  ]");
 	println!("}}");
-}
-
-fn str_json(value: Option<&str>) -> String {
-	match value {
-		Some(item) => format!("\"{item}\""),
-		None => "null".to_owned(),
-	}
-}
-
-fn json_escape(input: &str) -> String {
-	let mut out = String::with_capacity(input.len());
-	for ch in input.chars() {
-		match ch {
-			'"' => out.push_str("\\\""),
-			'\\' => out.push_str("\\\\"),
-			'\n' => out.push_str("\\n"),
-			'\r' => out.push_str("\\r"),
-			'\t' => out.push_str("\\t"),
-			c if c.is_control() => out.push_str(&format!("\\u{:04x}", c as u32)),
-			c => out.push(c),
-		}
-	}
-	out
 }

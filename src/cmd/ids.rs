@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
-use blendoc::blend::{BlendError, BlendFile, IdRecord, Result, scan_id_blocks};
+use blendoc::blend::{BlendFile, IdRecord, Result, scan_id_blocks};
+
+use crate::cmd::util::{json_escape, parse_block_code, ptr_json, render_code};
 
 /// Scan and print ID-root block summaries.
 pub fn run(path: PathBuf, code: Option<String>, type_name: Option<String>, limit: Option<usize>, json: bool) -> Result<()> {
@@ -49,31 +51,6 @@ pub fn run(path: PathBuf, code: Option<String>, type_name: Option<String>, limit
 	Ok(())
 }
 
-fn parse_block_code(code: &str) -> Result<[u8; 4]> {
-	if code.is_empty() || code.len() > 4 || !code.is_ascii() {
-		return Err(BlendError::InvalidBlockCode { code: code.to_owned() });
-	}
-
-	let mut out = [0_u8; 4];
-	out[..code.len()].copy_from_slice(code.as_bytes());
-	Ok(out)
-}
-
-fn render_code(code: [u8; 4]) -> String {
-	let mut out = String::new();
-	for byte in code {
-		if byte == 0 {
-			continue;
-		}
-		if byte.is_ascii_graphic() || byte == b' ' {
-			out.push(char::from(byte));
-		} else {
-			out.push('.');
-		}
-	}
-	if out.is_empty() { "....".to_owned() } else { out }
-}
-
 fn format_ptr(value: Option<u64>) -> String {
 	match value {
 		Some(ptr) => format!("0x{ptr:016x}"),
@@ -99,27 +76,4 @@ fn print_json_rows(rows: &[IdRecord]) {
 		);
 	}
 	println!("]");
-}
-
-fn ptr_json(value: Option<u64>) -> String {
-	match value {
-		Some(ptr) => format!("\"0x{ptr:016x}\""),
-		None => "null".to_owned(),
-	}
-}
-
-fn json_escape(input: &str) -> String {
-	let mut out = String::with_capacity(input.len());
-	for ch in input.chars() {
-		match ch {
-			'"' => out.push_str("\\\""),
-			'\\' => out.push_str("\\\\"),
-			'\n' => out.push_str("\\n"),
-			'\r' => out.push_str("\\r"),
-			'\t' => out.push_str("\\t"),
-			c if c.is_control() => out.push_str(&format!("\\u{:04x}", c as u32)),
-			c => out.push(c),
-		}
-	}
-	out
 }

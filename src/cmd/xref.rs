@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use blendoc::blend::{BlendError, BlendFile, IdIndex, XrefOptions, find_inbound_refs_to_ptr, scan_id_blocks};
 
-use crate::cmd::util::{json_escape, parse_ptr, str_json};
+use crate::cmd::util::{IdOrPtrSelector, json_escape, parse_id_or_ptr_selector, str_json};
 
 /// Find inbound references to a selected target pointer.
 pub fn run(
@@ -13,7 +13,7 @@ pub fn run(
 	limit: Option<usize>,
 	json: bool,
 ) -> blendoc::blend::Result<()> {
-	let selector = parse_selector(id_name, ptr)?;
+	let selector = parse_id_or_ptr_selector(id_name, ptr)?;
 
 	let blend = BlendFile::open(&path)?;
 	let dna = blend.dna()?;
@@ -21,11 +21,11 @@ pub fn run(
 	let ids = IdIndex::build(scan_id_blocks(&blend, &dna)?);
 
 	let (target_ptr, target_label) = match selector {
-		TargetSelector::Id(name) => {
+		IdOrPtrSelector::Id(name) => {
 			let row = ids.get_by_name(&name).ok_or(BlendError::IdRecordNotFound { name: name.clone() })?;
 			(row.old_ptr, format!("id:{}", row.id_name))
 		}
-		TargetSelector::Ptr(ptr) => (ptr, format!("ptr:0x{ptr:016x}")),
+		IdOrPtrSelector::Ptr(ptr) => (ptr, format!("ptr:0x{ptr:016x}")),
 	};
 
 	let typed = index
@@ -76,27 +76,6 @@ pub fn run(
 	}
 
 	Ok(())
-}
-
-enum TargetSelector {
-	Id(String),
-	Ptr(u64),
-}
-
-fn parse_selector(id_name: Option<String>, ptr: Option<String>) -> blendoc::blend::Result<TargetSelector> {
-	let supplied = usize::from(id_name.is_some()) + usize::from(ptr.is_some());
-	if supplied != 1 {
-		return Err(BlendError::InvalidChaseRoot);
-	}
-
-	if let Some(id_name) = id_name {
-		return Ok(TargetSelector::Id(id_name));
-	}
-	if let Some(ptr) = ptr {
-		return Ok(TargetSelector::Ptr(parse_ptr(&ptr)?));
-	}
-
-	Err(BlendError::InvalidChaseRoot)
 }
 
 fn print_json(

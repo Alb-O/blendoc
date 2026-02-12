@@ -3,6 +3,8 @@ use std::path::PathBuf;
 
 use blendoc::blend::{BlendFile, IdGraphOptions, IdGraphResult, IdGraphTruncation, IdIndex, build_id_graph, scan_id_blocks};
 
+use crate::cmd::util::{dot_escape, json_escape, render_code};
+
 /// Build and print whole-file ID-to-ID graph.
 pub fn run(
 	path: PathBuf,
@@ -139,39 +141,4 @@ fn truncation_json(value: Option<IdGraphTruncation>) -> &'static str {
 		Some(IdGraphTruncation::MaxEdges) => "\"max_edges\"",
 		None => "null",
 	}
-}
-
-fn render_code(code: [u8; 4]) -> String {
-	let mut out = String::new();
-	for byte in code {
-		if byte == 0 {
-			continue;
-		}
-		if byte.is_ascii_graphic() || byte == b' ' {
-			out.push(char::from(byte));
-		} else {
-			out.push('.');
-		}
-	}
-	if out.is_empty() { "....".to_owned() } else { out }
-}
-
-fn dot_escape(input: &str) -> String {
-	input.replace('\\', "\\\\").replace('"', "\\\"")
-}
-
-fn json_escape(input: &str) -> String {
-	let mut out = String::with_capacity(input.len());
-	for ch in input.chars() {
-		match ch {
-			'"' => out.push_str("\\\""),
-			'\\' => out.push_str("\\\\"),
-			'\n' => out.push_str("\\n"),
-			'\r' => out.push_str("\\r"),
-			'\t' => out.push_str("\\t"),
-			c if c.is_control() => out.push_str(&format!("\\u{:04x}", c as u32)),
-			c => out.push(c),
-		}
-	}
-	out
 }

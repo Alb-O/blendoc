@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use blendoc::blend::{BlendError, BlendFile, ChasePolicy, DecodeOptions, FieldPath, IdIndex, Value, chase_from_ptr, decode_ptr_instance, scan_id_blocks};
 
 use crate::cmd::print::{PrintCtx, PrintOptions, PtrAnnotCtx, print_value};
-use crate::cmd::util::{json_escape, parse_block_code, parse_ptr, render_code, str_json};
+use crate::cmd::util::{RootSelector, json_escape, parse_root_selector, render_code, str_json};
 
 /// Decode and print a struct/value from ID, pointer, or block code roots.
 #[allow(clippy::too_many_arguments)]
@@ -24,7 +24,7 @@ pub fn run(
 	expand_depth: u32,
 	expand_max_nodes: usize,
 ) -> blendoc::blend::Result<()> {
-	let selector = parse_root_selector(id_name, ptr, code)?;
+	let selector = parse_root_selector(code, ptr, id_name)?;
 
 	let blend = BlendFile::open(&path)?;
 	let dna = blend.dna()?;
@@ -137,31 +137,6 @@ pub fn run(
 	print_value(&Value::Struct(struct_value), 2, 0, print, Some(&print_ctx), effective_expand_depth);
 
 	Ok(())
-}
-
-enum RootSelector {
-	Id(String),
-	Ptr(u64),
-	Code([u8; 4]),
-}
-
-fn parse_root_selector(id_name: Option<String>, ptr: Option<String>, code: Option<String>) -> blendoc::blend::Result<RootSelector> {
-	let supplied = usize::from(id_name.is_some()) + usize::from(ptr.is_some()) + usize::from(code.is_some());
-	if supplied != 1 {
-		return Err(BlendError::InvalidChaseRoot);
-	}
-
-	if let Some(id_name) = id_name {
-		return Ok(RootSelector::Id(id_name));
-	}
-	if let Some(ptr) = ptr {
-		return Ok(RootSelector::Ptr(parse_ptr(&ptr)?));
-	}
-	if let Some(code) = code {
-		return Ok(RootSelector::Code(parse_block_code(&code)?));
-	}
-
-	Err(BlendError::InvalidChaseRoot)
 }
 
 fn print_json_struct(path: &std::path::Path, root_label: &str, root_ptr: u64, canonical: u64, id_name: Option<&str>, value: &Value) {

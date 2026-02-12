@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use blendoc::blend::{BlendFile, DecodeOptions, Value, chase_scene_camera};
 
+use crate::cmd::util::render_code;
+
 /// Resolve and print the active scene camera target, if present.
 pub fn run(path: PathBuf) -> blendoc::blend::Result<()> {
 	let blend = BlendFile::open(&path)?;
@@ -44,10 +46,6 @@ pub fn run(path: PathBuf) -> blendoc::blend::Result<()> {
 	}
 
 	Ok(())
-}
-
-fn render_code(code: [u8; 4]) -> String {
-	code.into_iter().filter(|byte| *byte != 0).map(char::from).collect()
 }
 
 fn brief_value(value: &Value) -> String {
