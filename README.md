@@ -103,6 +103,12 @@ All commands are under the `blendoc` binary:
 - `blendoc ids <file> [--code <CODE>] [--type <StructName>] [--limit <N>] [--json]`
   - scan ID-root blocks and print `ID.name` plus useful ID header pointers.
   - optional filtering by block code or derived struct type.
+  - JSON output includes optional linked-library provenance (`linked`, `link_confidence`).
+
+- `blendoc libs <file> [--linked-only] [--limit <N>] [--json]`
+  - scan `Library` (`LI`) ID declarations and per-ID linked provenance.
+  - confidence signals are derived from `ID.lib`, `ID.override_library`, and `ID.library_weak_reference`.
+  - `--linked-only` filters to IDs classified as linked/library-related.
 
 - `blendoc chase <file> (--code <CODE> | --ptr <HEX> | --id <IDNAME>) --path <FIELD.PATH> [--json]`
   - run generic field-path chase with hop-by-hop pointer trace.
@@ -111,6 +117,7 @@ All commands are under the `blendoc` binary:
 - `blendoc refs <file> (--code <CODE> | --ptr <HEX> | --id <IDNAME>) [--depth <N>] [--limit <N>] [--json]`
   - scan pointer-valued fields from one root struct and attempt pointer resolution.
   - includes canonical target metadata and ID-name annotations when available.
+  - JSON output includes optional owner link metadata (`owner_linked`, `owner_link_confidence`).
 
 - `blendoc graph <file> (--code <CODE> | --ptr <HEX> | --id <IDNAME>) [--depth <N>] [--refs-depth <N>] [--max-nodes <N>] [--max-edges <N>] [--id-only] [--dot] [--json]`
   - build a shallow pointer graph from one root pointer with BFS limits.
@@ -132,6 +139,7 @@ All commands are under the `blendoc` binary:
   - decode and print a struct instance from a pointer-like selector.
   - optional `--path` mode evaluates a chased field path from the selected root.
   - pointer fields can be annotated inline with resolved type/ID metadata.
+  - JSON output includes optional root link metadata (`root_linked`, `root_link_confidence`).
 
 - `blendoc walk <file> (--id <IDNAME> | --ptr <HEX> | --code <CODE>) [--path <FIELD.PATH>] [--next <FIELD>] [--refs-depth <N>] [--limit <N>] [--json]`
   - walk linked pointer chains by repeatedly following one pointer field.
@@ -146,6 +154,7 @@ nix develop -c cargo run -- dna fixtures/character.blend --struct Scene
 nix develop -c cargo run -- decode fixtures/character.blend --code GLOB
 nix develop -c cargo run -- scene fixtures/character.blend
 nix develop -c cargo run -- camera fixtures/character.blend
+nix develop -c cargo run -- libs fixtures/character.blend --json
 nix develop -c cargo run -- chase fixtures/character.blend --code SC --path world
 nix develop -c cargo run -- refs fixtures/character.blend --id SCScene --depth 1
 nix develop -c cargo run -- graph fixtures/character.blend --id SCScene --depth 1 --refs-depth 1
@@ -181,6 +190,8 @@ Core entry points:
 - `chase_from_block_code(...)`, `chase_from_ptr(...)`
 - `FieldPath::parse(...)`
 - `scan_id_blocks(...)`
+- `scan_library_records(...)`
+- `scan_id_link_provenance(...)`
 - `scan_refs_from_ptr(...)`
 - `build_graph_from_ptr(...)`
 - `find_inbound_refs_to_ptr(...)`
