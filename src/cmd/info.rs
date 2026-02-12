@@ -1,0 +1,46 @@
+use std::path::PathBuf;
+
+use blendoc::blend::{BlendFile, Result};
+
+pub fn run(path: PathBuf) -> Result<()> {
+	let blend = BlendFile::open(&path)?;
+	let stats = blend.scan_block_stats()?;
+
+	println!("path: {}", path.display());
+	println!("compression: {}", blend.compression.as_str());
+	println!("header_size: {}", blend.header.header_size);
+	println!("format_version: {}", blend.header.format_version);
+	println!("version: {}", blend.header.version);
+	println!("bhead_layout: large_bhead8");
+	println!("endianness: little");
+	println!("pointer_size: 8");
+	println!("block_count: {}", stats.block_count);
+	println!("has_dna1: {}", stats.has_dna1);
+	println!("has_endb: {}", stats.has_endb);
+	println!("last_code: {}", code_label(stats.last_code));
+
+	let mut entries: Vec<_> = stats.codes.into_iter().collect();
+	entries.sort_by(|left, right| right.1.cmp(&left.1).then_with(|| left.0.cmp(&right.0)));
+
+	println!("top_codes:");
+	for (code, count) in entries.into_iter().take(12) {
+		println!("  {}: {}", code_label(code), count);
+	}
+
+	Ok(())
+}
+
+fn code_label(code: [u8; 4]) -> String {
+	let mut out = String::new();
+	for byte in code {
+		if byte == 0 {
+			continue;
+		}
+		if byte.is_ascii_graphic() || byte == b' ' {
+			out.push(char::from(byte));
+		} else {
+			out.push('.');
+		}
+	}
+	if out.is_empty() { "....".to_owned() } else { out }
+}

@@ -13,5 +13,10 @@ keywords = []
 name = "blendoc"
 path = "src/main.rs"
 
+[dependencies]
+clap = { version = "4.5.31", features = ["derive"] }
+thiserror = "2.0.11"
+zstd = "0.13.3"
+
 [lints.rust]
 missing_docs = "warn"

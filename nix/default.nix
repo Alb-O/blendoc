@@ -58,7 +58,7 @@ flake-parts.lib.mkFlake { inherit inputs; } {
         doCheck = false;
 
         meta = with pkgs.lib; {
-        # TODO: Get from Cargo.toml
+          # TODO: Get from Cargo.toml
           #description = "Query Rust docs and crate API from the command line";
           #homepage = "https://github.com/Alb-O/ripdoc";
           #license = licenses.mit;
