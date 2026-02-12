@@ -84,6 +84,9 @@ dependencies = [
 [[package]]
 name = "blendoc_testkit"
 version = "0.1.0"
+dependencies = [
+ "serde_json",
+]
 
 [[package]]
 name = "cc"
