@@ -14,6 +14,16 @@ mod fixtures_day8_graph {
 		assert_scene_graph("sword.blend");
 	}
 
+	#[test]
+	fn character_v51_scene_graph_has_world_edge() {
+		assert_scene_graph("v5.1_character.blend");
+	}
+
+	#[test]
+	fn sword_v51_scene_graph_has_world_edge() {
+		assert_scene_graph("v5.1_sword.blend");
+	}
+
 	fn assert_scene_graph(name: &str) {
 		let blend = BlendFile::open(fixture_path(name)).expect("fixture opens");
 		let dna = blend.dna().expect("dna parses");

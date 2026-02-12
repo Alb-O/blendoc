@@ -118,6 +118,16 @@ mod fixtures_day12_show {
 		assert_world_decode("sword.blend");
 	}
 
+	#[test]
+	fn character_v51_decode_ptr_instance_world() {
+		assert_world_decode("v5.1_character.blend");
+	}
+
+	#[test]
+	fn sword_v51_decode_ptr_instance_world() {
+		assert_world_decode("v5.1_sword.blend");
+	}
+
 	fn assert_world_decode(name: &str) {
 		let blend = BlendFile::open(fixture_path(name)).expect("fixture opens");
 		let dna = blend.dna().expect("dna parses");

@@ -14,6 +14,16 @@ mod fixtures_day10_route {
 		assert_scene_world_route("sword.blend");
 	}
 
+	#[test]
+	fn character_v51_scene_to_world_route_is_direct() {
+		assert_scene_world_route("v5.1_character.blend");
+	}
+
+	#[test]
+	fn sword_v51_scene_to_world_route_is_direct() {
+		assert_scene_world_route("v5.1_sword.blend");
+	}
+
 	fn assert_scene_world_route(name: &str) {
 		let blend = BlendFile::open(fixture_path(name)).expect("fixture opens");
 		let dna = blend.dna().expect("dna parses");
