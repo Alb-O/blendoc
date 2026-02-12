@@ -124,6 +124,18 @@ pub enum BlendError {
 		/// Requested ID name.
 		name: String,
 	},
+	/// Linked-list walk field was not found on scanned owner value.
+	#[error("walk missing next field: {field}")]
+	WalkMissingNextField {
+		/// Requested next-field path.
+		field: String,
+	},
+	/// Walk start selection did not resolve to a pointer-like value.
+	#[error("walk invalid start value: {got}")]
+	WalkInvalidStart {
+		/// Runtime value kind used as walk start.
+		got: String,
+	},
 	/// Duplicate type->struct mapping in DNA `STRC` section.
 	#[error("DNA duplicate struct type index {type_idx}: first={first}, second={second}")]
 	DnaDuplicateStructType {

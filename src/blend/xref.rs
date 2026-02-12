@@ -76,10 +76,10 @@ pub fn find_inbound_refs_to_ptr<'a>(dna: &Dna, index: &PointerIndex<'a>, ids: &I
 
 fn canonical_ptr_for_target<'a>(dna: &Dna, index: &PointerIndex<'a>, ptr: u64) -> Result<u64> {
 	let typed = index.resolve_typed(dna, ptr).ok_or(BlendError::ChaseUnresolvedPtr { ptr })?;
-	let element_index = typed.element_index.ok_or(BlendError::ChasePtrOutOfBounds { ptr })?;
-	let offset = element_index.checked_mul(typed.struct_size).ok_or(BlendError::ChasePtrOutOfBounds { ptr })?;
-	let offset = u64::try_from(offset).map_err(|_| BlendError::ChasePtrOutOfBounds { ptr })?;
-	typed.base.entry.start_old.checked_add(offset).ok_or(BlendError::ChasePtrOutOfBounds { ptr })
+	if typed.element_index.is_none() {
+		return Err(BlendError::ChasePtrOutOfBounds { ptr });
+	}
+	index.canonical_ptr(dna, ptr).ok_or(BlendError::ChasePtrOutOfBounds { ptr })
 }
 
 #[cfg(test)]

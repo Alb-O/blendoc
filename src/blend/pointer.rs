@@ -61,7 +61,7 @@ impl<'a> PointerIndex<'a> {
 			}
 
 			let start_old = block.head.old;
-			let end_old = start_old.checked_add(block.payload.len() as u64).unwrap_or(u64::MAX);
+			let end_old = start_old.saturating_add(block.payload.len() as u64);
 			entries.push(PtrEntry { start_old, end_old, block });
 		}
 
@@ -121,6 +121,15 @@ impl<'a> PointerIndex<'a> {
 		})
 	}
 
+	/// Canonicalize a pointer to the start of its resolved struct element.
+	pub fn canonical_ptr(&self, dna: &Dna, ptr: u64) -> Option<u64> {
+		let typed = self.resolve_typed(dna, ptr)?;
+		let element_index = typed.element_index?;
+		let offset = element_index.checked_mul(typed.struct_size)?;
+		let offset = u64::try_from(offset).ok()?;
+		typed.base.entry.start_old.checked_add(offset)
+	}
+
 	/// Return all indexed entries in sorted order.
 	pub fn entries(&self) -> &[PtrEntry<'a>] {
 		&self.entries
@@ -129,6 +138,11 @@ impl<'a> PointerIndex<'a> {
 	/// Return number of indexed entries.
 	pub fn len(&self) -> usize {
 		self.entries.len()
+	}
+
+	/// Return whether there are no indexed entries.
+	pub fn is_empty(&self) -> bool {
+		self.entries.is_empty()
 	}
 }
 

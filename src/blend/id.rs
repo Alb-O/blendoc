@@ -70,9 +70,11 @@ pub fn scan_id_blocks(file: &BlendFile, dna: &Dna) -> Result<Vec<IdRecord>> {
 	let layout = detect_id_layout(dna)?;
 	let id_roots = id_root_flags(dna);
 
-	let mut decode = DecodeOptions::default();
-	decode.include_padding = true;
-	decode.strict_layout = true;
+	let decode = DecodeOptions {
+		include_padding: true,
+		strict_layout: true,
+		..DecodeOptions::default()
+	};
 
 	let mut out = Vec::new();
 	for block in file.blocks() {

@@ -134,6 +134,7 @@ fn chase_value<'a>(
 	decode: &DecodeOptions,
 	policy: &ChasePolicy,
 ) -> Result<ChaseResult> {
+	let config = DerefConfig { decode, policy };
 	let mut hops = Vec::new();
 	let mut visited = HashSet::new();
 	let mut decoded_cache: HashMap<u64, StructValue> = HashMap::new();
@@ -187,7 +188,7 @@ fn chase_value<'a>(
 					current = items[default_index].clone();
 					continue;
 				}
-				(PathStep::Field(_), Value::Ptr(ptr)) => match deref_pointer(dna, index, ptr, decode, policy, &mut hops, &mut visited, &mut decoded_cache)? {
+				(PathStep::Field(_), Value::Ptr(ptr)) => match deref_pointer(dna, index, ptr, &config, &mut hops, &mut visited, &mut decoded_cache)? {
 					DerefOutcome::Struct(item) => {
 						current = Value::Struct(item);
 						continue;
@@ -231,7 +232,7 @@ fn chase_value<'a>(
 					current = items[*index_value].clone();
 					break;
 				}
-				(PathStep::Index(_), Value::Ptr(ptr)) => match deref_pointer(dna, index, ptr, decode, policy, &mut hops, &mut visited, &mut decoded_cache)? {
+				(PathStep::Index(_), Value::Ptr(ptr)) => match deref_pointer(dna, index, ptr, &config, &mut hops, &mut visited, &mut decoded_cache)? {
 					DerefOutcome::Struct(item) => {
 						current = Value::Struct(item);
 						continue;
@@ -266,7 +267,7 @@ fn chase_value<'a>(
 			break;
 		};
 
-		match deref_pointer(dna, index, ptr, decode, policy, &mut hops, &mut visited, &mut decoded_cache)? {
+		match deref_pointer(dna, index, ptr, &config, &mut hops, &mut visited, &mut decoded_cache)? {
 			DerefOutcome::Struct(item) => {
 				current = Value::Struct(item);
 			}
@@ -295,43 +296,49 @@ enum DerefOutcome {
 	Stop(ChaseStopReason),
 }
 
+struct DerefConfig<'a> {
+	decode: &'a DecodeOptions,
+	policy: &'a ChasePolicy,
+}
+
 fn deref_pointer<'a>(
 	dna: &Dna,
 	index: &PointerIndex<'a>,
 	ptr: u64,
-	decode: &DecodeOptions,
-	policy: &ChasePolicy,
+	config: &DerefConfig<'_>,
 	hops: &mut Vec<ChaseMeta>,
 	visited: &mut HashSet<u64>,
 	decoded_cache: &mut HashMap<u64, StructValue>,
 ) -> Result<DerefOutcome> {
-	if hops.len() >= policy.max_hops {
-		return Err(BlendError::ChaseHopLimitExceeded { max_hops: policy.max_hops });
+	if hops.len() >= config.policy.max_hops {
+		return Err(BlendError::ChaseHopLimitExceeded {
+			max_hops: config.policy.max_hops,
+		});
 	}
 
 	if ptr == 0 {
-		return match policy.on_null_ptr {
+		return match config.policy.on_null_ptr {
 			StopMode::Stop => Ok(DerefOutcome::Stop(ChaseStopReason::NullPtr)),
 			StopMode::Error => Err(BlendError::ChaseNullPtr),
 		};
 	}
 
 	let Some(typed) = index.resolve_typed(dna, ptr) else {
-		return match policy.on_unresolved_ptr {
+		return match config.policy.on_unresolved_ptr {
 			StopMode::Stop => Ok(DerefOutcome::Stop(ChaseStopReason::UnresolvedPtr(ptr))),
 			StopMode::Error => Err(BlendError::ChaseUnresolvedPtr { ptr }),
 		};
 	};
 
 	let Some(element_index) = typed.element_index else {
-		return match policy.on_unresolved_ptr {
+		return match config.policy.on_unresolved_ptr {
 			StopMode::Stop => Ok(DerefOutcome::Stop(ChaseStopReason::UnresolvedPtr(ptr))),
 			StopMode::Error => Err(BlendError::ChasePtrOutOfBounds { ptr }),
 		};
 	};
 
-	if visited.len() >= policy.max_visited {
-		return match policy.on_cycle {
+	if visited.len() >= config.policy.max_visited {
+		return match config.policy.on_cycle {
 			StopMode::Stop => Ok(DerefOutcome::Stop(ChaseStopReason::Cycle(ptr))),
 			StopMode::Error => Err(BlendError::ChaseCycle { ptr }),
 		};
@@ -347,7 +354,7 @@ fn deref_pointer<'a>(
 	let canonical = typed.base.entry.start_old + offset_bytes as u64;
 
 	if visited.contains(&canonical) {
-		return match policy.on_cycle {
+		return match config.policy.on_cycle {
 			StopMode::Stop => Ok(DerefOutcome::Stop(ChaseStopReason::Cycle(canonical))),
 			StopMode::Error => Err(BlendError::ChaseCycle { ptr: canonical }),
 		};
@@ -379,7 +386,7 @@ fn deref_pointer<'a>(
 		payload: typed.base.payload().len(),
 	})?;
 
-	let value = decode_struct_instance(dna, typed.base.entry.block.head.sdna_nr, bytes, decode)?;
+	let value = decode_struct_instance(dna, typed.base.entry.block.head.sdna_nr, bytes, config.decode)?;
 	decoded_cache.insert(canonical, value.clone());
 	hops.push(ChaseMeta {
 		ptr,

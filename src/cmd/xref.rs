@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use blendoc::blend::{BlendError, BlendFile, IdIndex, XrefOptions, find_inbound_refs_to_ptr, scan_id_blocks};
 
+use crate::cmd::util::{json_escape, parse_ptr, str_json};
+
 /// Find inbound references to a selected target pointer.
 pub fn run(
 	path: PathBuf,
@@ -29,16 +31,11 @@ pub fn run(
 	let typed = index
 		.resolve_typed(&dna, target_ptr)
 		.ok_or(BlendError::ChaseUnresolvedPtr { ptr: target_ptr })?;
-	let element_index = typed.element_index.ok_or(BlendError::ChasePtrOutOfBounds { ptr: target_ptr })?;
-	let offset = element_index
-		.checked_mul(typed.struct_size)
-		.ok_or(BlendError::ChasePtrOutOfBounds { ptr: target_ptr })?;
-	let offset = u64::try_from(offset).map_err(|_| BlendError::ChasePtrOutOfBounds { ptr: target_ptr })?;
-	let target_canonical = typed
-		.base
-		.entry
-		.start_old
-		.checked_add(offset)
+	if typed.element_index.is_none() {
+		return Err(BlendError::ChasePtrOutOfBounds { ptr: target_ptr });
+	}
+	let target_canonical = index
+		.canonical_ptr(&dna, target_ptr)
 		.ok_or(BlendError::ChasePtrOutOfBounds { ptr: target_ptr })?;
 	let target_type = dna
 		.struct_by_sdna(typed.base.entry.block.head.sdna_nr)
@@ -102,16 +99,6 @@ fn parse_selector(id_name: Option<String>, ptr: Option<String>) -> blendoc::blen
 	Err(BlendError::InvalidChaseRoot)
 }
 
-fn parse_ptr(value: &str) -> blendoc::blend::Result<u64> {
-	let parsed = if let Some(stripped) = value.strip_prefix("0x").or_else(|| value.strip_prefix("0X")) {
-		u64::from_str_radix(stripped, 16)
-	} else {
-		value.parse::<u64>()
-	};
-
-	parsed.map_err(|_| BlendError::InvalidPointerLiteral { value: value.to_owned() })
-}
-
 fn print_json(
 	path: &std::path::Path,
 	target_label: &str,
@@ -140,27 +127,4 @@ fn print_json(
 	}
 	println!("  ]");
 	println!("}}");
-}
-
-fn str_json(value: Option<&str>) -> String {
-	match value {
-		Some(item) => format!("\"{item}\""),
-		None => "null".to_owned(),
-	}
-}
-
-fn json_escape(input: &str) -> String {
-	let mut out = String::with_capacity(input.len());
-	for ch in input.chars() {
-		match ch {
-			'"' => out.push_str("\\\""),
-			'\\' => out.push_str("\\\\"),
-			'\n' => out.push_str("\\n"),
-			'\r' => out.push_str("\\r"),
-			'\t' => out.push_str("\\t"),
-			c if c.is_control() => out.push_str(&format!("\\u{:04x}", c as u32)),
-			c => out.push(c),
-		}
-	}
-	out
 }

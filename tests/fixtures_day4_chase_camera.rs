@@ -29,14 +29,18 @@ fn assert_chase_camera(name: &str) {
 	let dna = blend.dna().expect("dna parses");
 	let index = blend.pointer_index().expect("pointer index builds");
 
-	let mut scene_decode = DecodeOptions::for_scene_inspect();
-	scene_decode.include_padding = true;
-	scene_decode.strict_layout = true;
+	let scene_decode = DecodeOptions {
+		include_padding: true,
+		strict_layout: true,
+		..DecodeOptions::for_scene_inspect()
+	};
 
-	let mut object_decode = DecodeOptions::default();
-	object_decode.max_depth = 6;
-	object_decode.include_padding = true;
-	object_decode.strict_layout = true;
+	let object_decode = DecodeOptions {
+		max_depth: 6,
+		include_padding: true,
+		strict_layout: true,
+		..DecodeOptions::default()
+	};
 
 	let scene_block = blend
 		.find_first_block_by_code([b'S', b'C', 0, 0])
@@ -63,13 +67,17 @@ fn assert_chase_world(name: &str) {
 	let dna = blend.dna().expect("dna parses");
 	let index = blend.pointer_index().expect("pointer index builds");
 
-	let mut scene_decode = DecodeOptions::for_scene_inspect();
-	scene_decode.include_padding = true;
-	scene_decode.strict_layout = true;
+	let scene_decode = DecodeOptions {
+		include_padding: true,
+		strict_layout: true,
+		..DecodeOptions::for_scene_inspect()
+	};
 
-	let mut world_decode = DecodeOptions::default();
-	world_decode.include_padding = true;
-	world_decode.strict_layout = true;
+	let world_decode = DecodeOptions {
+		include_padding: true,
+		strict_layout: true,
+		..DecodeOptions::default()
+	};
 
 	let scene_block = blend
 		.find_first_block_by_code([b'S', b'C', 0, 0])

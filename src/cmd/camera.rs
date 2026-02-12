@@ -8,14 +8,18 @@ pub fn run(path: PathBuf) -> blendoc::blend::Result<()> {
 	let dna = blend.dna()?;
 	let index = blend.pointer_index()?;
 
-	let mut scene_decode = DecodeOptions::for_scene_inspect();
-	scene_decode.include_padding = true;
-	scene_decode.strict_layout = true;
+	let scene_decode = DecodeOptions {
+		include_padding: true,
+		strict_layout: true,
+		..DecodeOptions::for_scene_inspect()
+	};
 
-	let mut object_decode = DecodeOptions::default();
-	object_decode.max_depth = 6;
-	object_decode.include_padding = true;
-	object_decode.strict_layout = true;
+	let object_decode = DecodeOptions {
+		max_depth: 6,
+		include_padding: true,
+		strict_layout: true,
+		..DecodeOptions::default()
+	};
 
 	let Some((meta, object)) = chase_scene_camera(&blend, &dna, &index, &scene_decode, &object_decode)? else {
 		println!("path: {}", path.display());

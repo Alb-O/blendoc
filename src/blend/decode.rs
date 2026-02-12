@@ -1,7 +1,7 @@
 use crate::blend::bytes::Cursor;
 use crate::blend::decl::{FieldDecl, parse_field_decl};
 use crate::blend::value::{FieldValue, StructValue, Value};
-use crate::blend::{BlendError, Block, Dna, Result};
+use crate::blend::{BlendError, Block, Dna, PointerIndex, Result};
 
 const POINTER_SIZE: usize = 8;
 
@@ -91,6 +91,36 @@ pub fn decode_block_instances(dna: &Dna, block: &Block<'_>, opt: &DecodeOptions)
 /// Decode one struct instance from raw bytes using SDNA index.
 pub fn decode_struct_instance(dna: &Dna, sdna_nr: u32, bytes: &[u8], opt: &DecodeOptions) -> Result<StructValue> {
 	decode_struct_impl(dna, sdna_nr, bytes, opt, 0)
+}
+
+/// Resolve a pointer and decode the pointed-to struct element.
+pub fn decode_ptr_instance<'a>(dna: &Dna, index: &PointerIndex<'a>, ptr: u64, opt: &DecodeOptions) -> Result<(u64, StructValue)> {
+	if ptr == 0 {
+		return Err(BlendError::ChaseNullPtr);
+	}
+
+	let typed = index.resolve_typed(dna, ptr).ok_or(BlendError::ChaseUnresolvedPtr { ptr })?;
+	let element_index = typed.element_index.ok_or(BlendError::ChasePtrOutOfBounds { ptr })?;
+	let canonical = index.canonical_ptr(dna, ptr).ok_or(BlendError::ChasePtrOutOfBounds { ptr })?;
+
+	let start = element_index.checked_mul(typed.struct_size).ok_or(BlendError::ChaseSliceOob {
+		start: usize::MAX,
+		size: typed.struct_size,
+		payload: typed.base.payload().len(),
+	})?;
+	let end = start.checked_add(typed.struct_size).ok_or(BlendError::ChaseSliceOob {
+		start,
+		size: typed.struct_size,
+		payload: typed.base.payload().len(),
+	})?;
+	let bytes = typed.base.payload().get(start..end).ok_or(BlendError::ChaseSliceOob {
+		start,
+		size: typed.struct_size,
+		payload: typed.base.payload().len(),
+	})?;
+
+	let value = decode_struct_instance(dna, typed.base.entry.block.head.sdna_nr, bytes, opt)?;
+	Ok((canonical, value))
 }
 
 fn decode_struct_impl(dna: &Dna, sdna_nr: u32, bytes: &[u8], opt: &DecodeOptions, depth: u32) -> Result<StructValue> {

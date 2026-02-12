@@ -23,9 +23,11 @@ fn assert_glob_decode(name: &str) {
 		.expect("GLOB block exists");
 	let value = decode_block_instances(&dna, &block, &DecodeOptions::default()).expect("decode succeeds");
 
-	let mut strict = DecodeOptions::default();
-	strict.include_padding = true;
-	strict.strict_layout = true;
+	let strict = DecodeOptions {
+		include_padding: true,
+		strict_layout: true,
+		..DecodeOptions::default()
+	};
 	decode_block_instances(&dna, &block, &strict).expect("strict decode succeeds");
 
 	match value {

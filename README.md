@@ -116,6 +116,23 @@ All commands are under the `blendoc` binary:
   - find inbound references to a target canonical pointer.
   - reports owner ID/type and pointer field path for each inbound edge.
 
+- `blendoc route <file> (--from-id <NAME> | --from-ptr <HEX> | --from-code <CODE>) (--to-id <NAME> | --to-ptr <HEX>) [--depth <N>] [--refs-depth <N>] [--max-nodes <N>] [--max-edges <N>] [--json]`
+  - find a shortest pointer route between canonicalized endpoints.
+  - reports traversal budgets, truncation reason, and route edges when found.
+
+- `blendoc idgraph <file> [--refs-depth <N>] [--max-edges <N>] [--dot] [--json] [--prefix <XX>] [--type <Name>]`
+  - build a whole-file ID-to-ID graph across ID-root records.
+  - supports optional node filtering by ID name prefix or type.
+
+- `blendoc show <file> (--id <IDNAME> | --ptr <HEX> | --code <CODE>) [--path <FIELD.PATH>] [--trace] [--json] [--max-depth <N>] [--max-array <N>] [--include-padding] [--strict-layout] [--annotate-ptrs|--raw-ptrs] [--expand-depth <N>] [--expand-max-nodes <N>]`
+  - decode and print a struct instance from a pointer-like selector.
+  - optional `--path` mode evaluates a chased field path from the selected root.
+  - pointer fields can be annotated inline with resolved type/ID metadata.
+
+- `blendoc walk <file> (--id <IDNAME> | --ptr <HEX> | --code <CODE>) [--path <FIELD.PATH>] [--next <FIELD>] [--refs-depth <N>] [--limit <N>] [--json]`
+  - walk linked pointer chains by repeatedly following one pointer field.
+  - supports path-derived walk starts and structured stop reasons.
+
 Examples:
 
 ```bash
@@ -128,6 +145,11 @@ nix develop -c cargo run -- chase fixtures/character.blend --code SC --path worl
 nix develop -c cargo run -- refs fixtures/character.blend --id SCScene --depth 1
 nix develop -c cargo run -- graph fixtures/character.blend --id SCScene --depth 1 --refs-depth 1
 nix develop -c cargo run -- xref fixtures/character.blend --id WOWorld --limit 10
+nix develop -c cargo run -- route fixtures/character.blend --from-id SCScene --to-id WOWorld --depth 3 --refs-depth 1
+nix develop -c cargo run -- idgraph fixtures/character.blend --refs-depth 1 --max-edges 200
+nix develop -c cargo run -- show fixtures/character.blend --id WOWorld
+nix develop -c cargo run -- show fixtures/character.blend --id WOWorld --expand-depth 1
+nix develop -c cargo run -- walk fixtures/character.blend --id SCScene --next id.next --limit 20
 ```
 
 ## Library entry points
@@ -141,6 +163,7 @@ Core entry points:
 - `BlendFile::dna()`
 - `BlendFile::pointer_index()`
 - `decode_block_instances(...)`
+- `decode_ptr_instance(...)`
 - `chase_ptr_to_struct(...)`
 - `chase_from_block_code(...)`, `chase_from_ptr(...)`
 - `FieldPath::parse(...)`
@@ -148,6 +171,9 @@ Core entry points:
 - `scan_refs_from_ptr(...)`
 - `build_graph_from_ptr(...)`
 - `find_inbound_refs_to_ptr(...)`
+- `find_route_between_ptrs(...)`
+- `build_id_graph(...)`
+- `walk_ptr_chain(...)`
 
 Minimal usage sketch:
 

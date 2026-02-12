@@ -56,8 +56,10 @@ fn cycle_is_detected_and_stops() {
 	};
 
 	let path = FieldPath::parse("next.next.next").expect("path parses");
-	let mut policy = ChasePolicy::default();
-	policy.on_cycle = StopMode::Stop;
+	let policy = ChasePolicy {
+		on_cycle: StopMode::Stop,
+		..ChasePolicy::default()
+	};
 
 	let result = chase_from_ptr(&dna, &index, 0x1000, &path, &blendoc::blend::DecodeOptions::default(), &policy).expect("chase succeeds");
 

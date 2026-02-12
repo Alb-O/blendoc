@@ -3,20 +3,36 @@ use std::path::PathBuf;
 
 use blendoc::blend::{BlendError, BlendFile, GraphOptions, GraphResult, GraphTruncation, IdIndex, build_graph_from_ptr, scan_id_blocks};
 
+pub struct GraphArgs {
+	pub path: PathBuf,
+	pub code: Option<String>,
+	pub ptr: Option<String>,
+	pub id_name: Option<String>,
+	pub depth: Option<u32>,
+	pub refs_depth: Option<u32>,
+	pub max_nodes: Option<usize>,
+	pub max_edges: Option<usize>,
+	pub id_only: bool,
+	pub dot: bool,
+	pub json: bool,
+}
+
 /// Build and print a shallow pointer graph from one root selector.
-pub fn run(
-	path: PathBuf,
-	code: Option<String>,
-	ptr: Option<String>,
-	id_name: Option<String>,
-	depth: Option<u32>,
-	refs_depth: Option<u32>,
-	max_nodes: Option<usize>,
-	max_edges: Option<usize>,
-	id_only: bool,
-	dot: bool,
-	json: bool,
-) -> blendoc::blend::Result<()> {
+pub fn run(args: GraphArgs) -> blendoc::blend::Result<()> {
+	let GraphArgs {
+		path,
+		code,
+		ptr,
+		id_name,
+		depth,
+		refs_depth,
+		max_nodes,
+		max_edges,
+		id_only,
+		dot,
+		json,
+	} = args;
+
 	let selector = parse_root_selector(code, ptr, id_name)?;
 
 	let blend = BlendFile::open(&path)?;
