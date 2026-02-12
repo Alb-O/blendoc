@@ -18,7 +18,6 @@
   },
   "geometry_nodes": {
     "procedural_hair_node_assets.blend": "https://projects.blender.org/blender/blender-assets/media/branch/main/publish/geometry_nodes/procedural_hair_node_assets.blend",
-    "smooth_by_angle.blend": "https://projects.blender.org/blender/blender-assets/media/branch/main/publish/geometry_nodes/smooth_by_angle.blend",
     "large_nested_field_test.blend": "https://projects.blender.org/blender/blender-benchmarks/media/branch/main/geometry_nodes/many_nodes_test_files/large_nested_field_test.blend",
     "many_math_nodes.blend": "https://projects.blender.org/blender/blender-benchmarks/media/branch/main/geometry_nodes/many_nodes_test_files/many_math_nodes.blend"
   },
