@@ -1,0 +1,23 @@
+[package]
+name = "blendoc_cli"
+version = "0.1.0"
+edition = "2024"
+authors = ["Albert O'Shea <albertoshea2@gmail.com>"]
+description = "Experimental Blender tools CLI"
+license = "MIT"
+repository = "https://github.com/Alb-O/blendoc"
+readme = "../../README.md"
+keywords = []
+
+[[bin]]
+name = "blendoc"
+path = "src/main.rs"
+
+[dependencies]
+blendoc = { path = "../blendoc_core" }
+clap = { version = "4.5.31", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+
+[lints]
+workspace = true

@@ -56,9 +56,6 @@ dependencies = [
 name = "blendoc"
 version = "0.1.0"
 dependencies = [
- "clap",
- "serde",
- "serde_json",
  "thiserror",
  "zstd",
 ]
@@ -67,6 +64,16 @@ dependencies = [
 name = "blendoc_blendfiles_downloader"
 version = "0.1.0"
 dependencies = [
+ "clap",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "blendoc_cli"
+version = "0.1.0"
+dependencies = [
+ "blendoc",
  "clap",
  "serde",
  "serde_json",
