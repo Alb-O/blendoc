@@ -42,8 +42,8 @@ pub use error::{BlendError, Result};
 pub use file::{BlendFile, BlockStats};
 /// Graph extraction types and entry points.
 pub use graph::{GraphEdge, GraphNode, GraphOptions, GraphResult, GraphTruncation, build_graph_from_ptr};
-/// File header representation.
-pub use header::BlendHeader;
+/// File header representation and byte-order marker.
+pub use header::{BlendHeader, Endianness};
 /// ID-root block scan output and helpers.
 pub use id::{IdIndex, IdRecord, scan_id_blocks};
 /// Whole-file ID graph extraction types and entry points.

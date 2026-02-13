@@ -31,9 +31,9 @@ pub fn run(args: Args) -> Result<()> {
 			header_size: blend.header.header_size,
 			format_version: blend.header.format_version,
 			version: blend.header.version,
-			bhead_layout: "large_bhead8",
-			endianness: "little",
-			pointer_size: 8,
+			bhead_layout: blend.header.bhead_layout_label(),
+			endianness: blend.header.endianness.as_str(),
+			pointer_size: blend.header.pointer_size as u8,
 			pointer_storage: pointer_storage_label(pointer_storage).to_owned(),
 			pointer_diagnostics: PointerDiagnosticsJson {
 				indexed_entries: pointer_diag.indexed_entries,
@@ -65,9 +65,9 @@ pub fn run(args: Args) -> Result<()> {
 	println!("header_size: {}", blend.header.header_size);
 	println!("format_version: {}", blend.header.format_version);
 	println!("version: {}", blend.header.version);
-	println!("bhead_layout: large_bhead8");
-	println!("endianness: little");
-	println!("pointer_size: 8");
+	println!("bhead_layout: {}", blend.header.bhead_layout_label());
+	println!("endianness: {}", blend.header.endianness.as_str());
+	println!("pointer_size: {}", blend.header.pointer_size);
 	println!("pointer_storage: {}", pointer_storage_label(pointer_storage));
 	println!("pointer_blocks_indexed: {}", pointer_diag.indexed_entries);
 	println!("pointer_overlapping_ranges: {}", pointer_diag.overlapping_ranges);

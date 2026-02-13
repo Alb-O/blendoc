@@ -123,6 +123,8 @@ mod synthetic_chain {
 		]);
 
 		let dna = Dna {
+			endianness: crate::blend::Endianness::Little,
+			pointer_size: 8,
 			names: vec!["*next".into()],
 			types: vec!["Node".into()],
 			tlen: vec![8],

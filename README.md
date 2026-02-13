@@ -13,17 +13,16 @@ This project is intentionally format-focused. It implements parsing, schema deco
 
 ## Scope and assumptions
 
-- Target format: Blender file-format v1 headers (`BLENDER17-01v0500` and newer).
-- Blender version gate: `>= 5.0` only.
-- Endianness: little-endian only.
-- Block header layout: `LargeBHead8` only.
+- Target format: modern v1 headers (`BLENDER17-01v0500` and newer) and legacy headers (`BLENDER-v302` style).
+- Blender version gate: none (legacy pre-5.0 and modern 5.x are both supported).
+- Endianness: little-endian and big-endian.
+- Block header layout: modern `LargeBHead8` and legacy `BHead`.
 - Input compression: uncompressed or zstd-compressed streams.
 - Fixtures currently tracked: `fixtures/character.blend`, `fixtures/sword.blend`.
 
 Out of scope right now:
 
-- Legacy pre-v1 `.blend` headers.
-- Big-endian handling.
+- Non-blend containers (for example gzipped `.blend` wrappers not yet decoded in-core).
 - Full recursive graph extraction / full scene reconstruction.
 
 ## Format pipeline implemented
@@ -36,15 +35,13 @@ The implementation is split into explicit layers:
    - Verifies decompressed stream begins with `BLENDER`.
 
 2. **Header parse** (`crates/blendoc_core/src/blend/header.rs`)
-   - Parses v1 header fields:
-     - header size
-     - format version
-     - blender version
-   - Enforces v1 and Blender `>= 500`.
-   - Enforces little-endian marker.
+   - Parses both modern v1 headers (`BLENDER17-01v0500`) and legacy headers (`BLENDER-v302`).
+   - Extracts header size, format version, blender version, pointer size, and endianness.
+   - Supports both little-endian (`v`) and big-endian (`V`) markers.
 
 3. **Block iteration** (`crates/blendoc_core/src/blend/bhead.rs`, `crates/blendoc_core/src/blend/block.rs`)
-   - Parses `LargeBHead8` as:
+   - Parses modern `LargeBHead8` and legacy `BHead` layouts.
+   - Modern `LargeBHead8` fields:
      - `code [u8;4]`
      - `sdna_nr u32`
      - `old u64` (stored address identifier)

@@ -1,9 +1,13 @@
 use crate::blend::bytes::Cursor;
-use crate::blend::{BlendError, Result};
+use crate::blend::{BlendError, Endianness, Result};
 
 /// Parsed SDNA schema tables.
 #[derive(Debug)]
 pub struct Dna {
+	/// Endianness used for numeric values in this file.
+	pub endianness: Endianness,
+	/// Pointer width in bytes for this file.
+	pub pointer_size: usize,
 	/// Field name strings from `NAME`.
 	pub names: Vec<Box<str>>,
 	/// Type name strings from `TYPE`.
@@ -36,13 +40,13 @@ pub struct DnaField {
 
 impl Dna {
 	/// Parse `DNA1` payload bytes into SDNA tables.
-	pub fn parse(payload: &[u8]) -> Result<Self> {
+	pub fn parse(payload: &[u8], endianness: Endianness, pointer_size: usize) -> Result<Self> {
 		let mut cursor = Cursor::new(payload);
 
 		expect_tag(&mut cursor, *b"SDNA")?;
 		expect_tag(&mut cursor, *b"NAME")?;
 
-		let name_count = cursor.read_u32_le()? as usize;
+		let name_count = cursor.read_u32(endianness)? as usize;
 		let mut names = Vec::with_capacity(name_count);
 		for _ in 0..name_count {
 			names.push(read_lossy_string(&mut cursor)?);
@@ -50,7 +54,7 @@ impl Dna {
 		cursor.align4()?;
 
 		expect_tag(&mut cursor, *b"TYPE")?;
-		let type_count = cursor.read_u32_le()? as usize;
+		let type_count = cursor.read_u32(endianness)? as usize;
 		let mut types = Vec::with_capacity(type_count);
 		for _ in 0..type_count {
 			types.push(read_lossy_string(&mut cursor)?);
@@ -60,23 +64,23 @@ impl Dna {
 		expect_tag(&mut cursor, *b"TLEN")?;
 		let mut tlen = Vec::with_capacity(type_count);
 		for _ in 0..type_count {
-			tlen.push(cursor.read_u16_le()?);
+			tlen.push(cursor.read_u16(endianness)?);
 		}
 		cursor.align4()?;
 
 		expect_tag(&mut cursor, *b"STRC")?;
-		let struct_count = cursor.read_u32_le()? as usize;
+		let struct_count = cursor.read_u32(endianness)? as usize;
 		let mut structs = Vec::with_capacity(struct_count);
 
 		for _ in 0..struct_count {
-			let type_idx = cursor.read_u16_le()?;
+			let type_idx = cursor.read_u16(endianness)?;
 			check_index("struct.type_idx", u32::from(type_idx), types.len())?;
 
-			let field_count = cursor.read_u16_le()? as usize;
+			let field_count = cursor.read_u16(endianness)? as usize;
 			let mut fields = Vec::with_capacity(field_count);
 			for _ in 0..field_count {
-				let field_type_idx = cursor.read_u16_le()?;
-				let field_name_idx = cursor.read_u16_le()?;
+				let field_type_idx = cursor.read_u16(endianness)?;
+				let field_name_idx = cursor.read_u16(endianness)?;
 				check_index("field.type_idx", u32::from(field_type_idx), types.len())?;
 				check_index("field.name_idx", u32::from(field_name_idx), names.len())?;
 				fields.push(DnaField {
@@ -102,6 +106,8 @@ impl Dna {
 		}
 
 		Ok(Self {
+			endianness,
+			pointer_size,
 			names,
 			types,
 			tlen,

@@ -1,5 +1,5 @@
 use crate::blend::bytes::Cursor;
-use crate::blend::{BHead, BlendError, Result};
+use crate::blend::{BHead, BlendError, BlendHeader, Result};
 
 /// Borrowed view over one parsed blend block.
 #[derive(Debug, Clone, Copy)]
@@ -16,16 +16,18 @@ pub struct Block<'a> {
 pub struct BlockIter<'a> {
 	cursor: Cursor<'a>,
 	offset_base: usize,
+	header: BlendHeader,
 	done: bool,
 }
 
 impl<'a> BlockIter<'a> {
 	/// Create a block iterator starting at `offset`.
-	pub fn new(bytes: &'a [u8], offset: usize) -> Self {
+	pub fn new(bytes: &'a [u8], offset: usize, header: BlendHeader) -> Self {
 		let slice = bytes.get(offset..).unwrap_or(&[]);
 		Self {
 			cursor: Cursor::new(slice),
 			offset_base: offset,
+			header,
 			done: false,
 		}
 	}
@@ -45,7 +47,7 @@ impl<'a> Iterator for BlockIter<'a> {
 		}
 
 		let file_offset = self.offset_base + self.cursor.pos();
-		let head = match BHead::parse(&mut self.cursor) {
+		let head = match BHead::parse(&mut self.cursor, self.header) {
 			Ok(value) => value,
 			Err(err) => {
 				self.done = true;

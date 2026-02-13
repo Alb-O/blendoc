@@ -111,6 +111,8 @@ mod pointer_arrays {
 		]);
 
 		let dna = Dna {
+			endianness: crate::blend::Endianness::Little,
+			pointer_size: 8,
 			names: vec!["*arr[2]".into(), "nested".into(), "*first".into()],
 			types: vec!["Owner".into(), "Nested".into()],
 			tlen: vec![24, 8],

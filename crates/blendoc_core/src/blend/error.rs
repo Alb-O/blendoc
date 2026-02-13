@@ -18,19 +18,10 @@ pub enum BlendError {
 	/// Decompressed stream did not start with `BLENDER`.
 	#[error("decompressed data does not start with BLENDER magic")]
 	NotBlendAfterDecompress,
-	/// Endianness marker is not little-endian.
-	#[error("unsupported endianness (expected little-endian 'v')")]
-	BigEndianUnsupported,
 	/// Unsupported container format version.
 	#[error("unsupported file format version {version} (expected 1)")]
 	UnsupportedFormatVersion {
 		/// Parsed format version.
-		version: u16,
-	},
-	/// Unsupported Blender major/minor version.
-	#[error("unsupported blender version {version} (expected >= 500)")]
-	UnsupportedBlendVersion {
-		/// Parsed Blender version digits.
 		version: u16,
 	},
 	/// Unsupported pointer-size/layout marker.

@@ -99,6 +99,8 @@ mod nested_inbound {
 		]);
 
 		let dna = Dna {
+			endianness: crate::blend::Endianness::Little,
+			pointer_size: 8,
 			names: vec!["id[8]".into(), "nested".into(), "*first".into()],
 			types: vec!["char".into(), "Owner".into(), "Nested".into(), "Target".into()],
 			tlen: vec![1, 16, 8, 8],

@@ -133,3 +133,50 @@ mod fixtures_day12_show {
 		assert_eq!(value.type_name.as_ref(), "World");
 	}
 }
+
+mod unit_big_endian_decode {
+	use crate::blend::{BHead, Block, DecodeOptions, Dna, DnaField, DnaStruct, Endianness, Value, decode_block_instances};
+
+	#[test]
+	fn decodes_big_endian_numeric_and_pointer_fields() {
+		let dna = Dna {
+			endianness: Endianness::Big,
+			pointer_size: 8,
+			names: vec!["value".into(), "*next".into()],
+			types: vec!["uint".into(), "Node".into()],
+			tlen: vec![4, 12],
+			structs: vec![DnaStruct {
+				type_idx: 1,
+				fields: vec![DnaField { type_idx: 0, name_idx: 0 }, DnaField { type_idx: 1, name_idx: 1 }],
+			}],
+			struct_for_type: vec![None, Some(0)],
+		};
+
+		let mut payload = Vec::new();
+		payload.extend_from_slice(&0x0102_0304_u32.to_be_bytes());
+		payload.extend_from_slice(&0x1122_3344_5566_7788_u64.to_be_bytes());
+		let block = Block {
+			head: BHead {
+				code: *b"DATA",
+				sdna_nr: 0,
+				old: 0x1000,
+				len: payload.len() as u64,
+				nr: 1,
+			},
+			payload: &payload,
+			file_offset: 0,
+		};
+
+		let value = decode_block_instances(&dna, &block, &DecodeOptions::default()).expect("decode succeeds");
+		let Value::Struct(item) = value else {
+			panic!("expected struct decode");
+		};
+		assert_eq!(item.type_name.as_ref(), "Node");
+
+		let number = item.fields.iter().find(|field| field.name.as_ref() == "value").expect("value field exists");
+		assert!(matches!(number.value, Value::U64(0x0102_0304)));
+
+		let next = item.fields.iter().find(|field| field.name.as_ref() == "next").expect("next field exists");
+		assert!(matches!(next.value, Value::Ptr(0x1122_3344_5566_7788)));
+	}
+}

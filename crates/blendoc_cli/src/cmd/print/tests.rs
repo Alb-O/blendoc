@@ -5,6 +5,8 @@ use crate::cmd::test_support::{fixture_path, run_blendoc};
 
 fn test_dna() -> Dna {
 	Dna {
+		endianness: blendoc::blend::Endianness::Little,
+		pointer_size: 8,
 		names: vec!["*next".into()],
 		types: vec!["Node".into()],
 		tlen: vec![8],

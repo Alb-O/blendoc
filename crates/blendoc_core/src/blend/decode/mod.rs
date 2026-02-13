@@ -1,9 +1,7 @@
 use crate::blend::bytes::Cursor;
 use crate::blend::decl::{FieldDecl, parse_field_decl};
 use crate::blend::value::{FieldValue, StructValue, Value};
-use crate::blend::{BlendError, Block, Dna, PointerIndex, Result};
-
-const POINTER_SIZE: usize = 8;
+use crate::blend::{BlendError, Block, Dna, Endianness, PointerIndex, Result};
 
 /// Runtime limits and behavior switches for SDNA decoding.
 #[derive(Debug, Clone)]
@@ -181,7 +179,7 @@ fn decode_field_value(
 	}
 
 	if decl.ptr_depth > 0 || decl.is_func_ptr {
-		return decode_pointer_values(cursor, element_count);
+		return decode_pointer_values(cursor, element_count, dna.pointer_size, dna.endianness);
 	}
 
 	if let Some(sdna_idx) = dna.struct_for_type.get(field_type_idx as usize).and_then(|value| *value) {
@@ -209,13 +207,13 @@ fn decode_field_value(
 		return Ok(Value::String(String::from_utf8_lossy(&bytes[..end]).into_owned().into_boxed_str()));
 	}
 
-	decode_primitive_values(cursor, type_name, usize::from(dna.tlen[field_type_idx as usize]), element_count)
+	decode_primitive_values(cursor, type_name, usize::from(dna.tlen[field_type_idx as usize]), element_count, dna.endianness)
 }
 
-fn decode_pointer_values(cursor: &mut Cursor<'_>, count: usize) -> Result<Value> {
+fn decode_pointer_values(cursor: &mut Cursor<'_>, count: usize, pointer_size: usize, endianness: Endianness) -> Result<Value> {
 	let mut values = Vec::with_capacity(count);
 	for _ in 0..count {
-		let value = cursor.read_u64_le()?;
+		let value = cursor.read_ptr(pointer_size, endianness)?;
 		values.push(Value::Ptr(value));
 	}
 	if count == 1 {
@@ -225,11 +223,11 @@ fn decode_pointer_values(cursor: &mut Cursor<'_>, count: usize) -> Result<Value>
 	}
 }
 
-fn decode_primitive_values(cursor: &mut Cursor<'_>, type_name: &str, element_size: usize, count: usize) -> Result<Value> {
+fn decode_primitive_values(cursor: &mut Cursor<'_>, type_name: &str, element_size: usize, count: usize, endianness: Endianness) -> Result<Value> {
 	let mut values = Vec::with_capacity(count);
 	for _ in 0..count {
 		let bytes = cursor.read_exact(element_size)?;
-		values.push(decode_primitive(type_name, bytes));
+		values.push(decode_primitive(type_name, bytes, endianness));
 	}
 
 	if count == 1 {
@@ -239,34 +237,54 @@ fn decode_primitive_values(cursor: &mut Cursor<'_>, type_name: &str, element_siz
 	}
 }
 
-fn decode_primitive(type_name: &str, bytes: &[u8]) -> Value {
+fn decode_primitive(type_name: &str, bytes: &[u8], endianness: Endianness) -> Value {
 	match (type_name, bytes.len()) {
 		("float", 4) => {
 			let mut arr = [0_u8; 4];
 			arr.copy_from_slice(bytes);
-			Value::F32(f32::from_le_bytes(arr))
+			let value = match endianness {
+				Endianness::Little => f32::from_le_bytes(arr),
+				Endianness::Big => f32::from_be_bytes(arr),
+			};
+			Value::F32(value)
 		}
 		("double", 8) => {
 			let mut arr = [0_u8; 8];
 			arr.copy_from_slice(bytes);
-			Value::F64(f64::from_le_bytes(arr))
+			let value = match endianness {
+				Endianness::Little => f64::from_le_bytes(arr),
+				Endianness::Big => f64::from_be_bytes(arr),
+			};
+			Value::F64(value)
 		}
 		("bool", 1) => Value::Bool(bytes[0] != 0),
 		(_, 1) => decode_int_i64_or_u64(type_name, u64::from(bytes[0]), 8),
 		(_, 2) => {
 			let mut arr = [0_u8; 2];
 			arr.copy_from_slice(bytes);
-			decode_int_i64_or_u64(type_name, u64::from(u16::from_le_bytes(arr)), 16)
+			let value = match endianness {
+				Endianness::Little => u16::from_le_bytes(arr),
+				Endianness::Big => u16::from_be_bytes(arr),
+			};
+			decode_int_i64_or_u64(type_name, u64::from(value), 16)
 		}
 		(_, 4) => {
 			let mut arr = [0_u8; 4];
 			arr.copy_from_slice(bytes);
-			decode_int_i64_or_u64(type_name, u64::from(u32::from_le_bytes(arr)), 32)
+			let value = match endianness {
+				Endianness::Little => u32::from_le_bytes(arr),
+				Endianness::Big => u32::from_be_bytes(arr),
+			};
+			decode_int_i64_or_u64(type_name, u64::from(value), 32)
 		}
 		(_, 8) => {
 			let mut arr = [0_u8; 8];
 			arr.copy_from_slice(bytes);
-			decode_int_i64_or_u64(type_name, u64::from_le_bytes(arr), 64)
+			let value = match endianness {
+				Endianness::Little => u64::from_le_bytes(arr),
+				Endianness::Big => u64::from_be_bytes(arr),
+			};
+			decode_int_i64_or_u64(type_name, value, 64)
 		}
 		_ => Value::Bytes(bytes.to_vec()),
 	}
@@ -297,7 +315,7 @@ fn skip_field_storage(cursor: &mut Cursor<'_>, dna: &Dna, type_name: &str, field
 		return Ok(());
 	}
 	let element_size = if decl.ptr_depth > 0 || decl.is_func_ptr {
-		POINTER_SIZE
+		dna.pointer_size
 	} else if type_name == "void" {
 		1
 	} else {

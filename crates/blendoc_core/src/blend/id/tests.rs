@@ -35,6 +35,8 @@ mod id_root_detection {
 	#[test]
 	fn id_root_detection_handles_non_id_roots() {
 		let dna = Dna {
+			endianness: crate::blend::Endianness::Little,
+			pointer_size: 8,
 			names: vec!["id".into(), "other".into()],
 			types: vec!["ID".into(), "Scene".into(), "NoIdRoot".into()],
 			tlen: vec![8, 24, 16],

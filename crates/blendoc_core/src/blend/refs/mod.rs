@@ -124,7 +124,7 @@ impl<'a, 'b, 'c> RefScanner<'a, 'b, 'c> {
 
 			if decl.ptr_depth > 0 || decl.is_func_ptr {
 				for idx in 0..count {
-					let ptr = cursor.read_u64_le()?;
+					let ptr = cursor.read_ptr(self.dna.pointer_size, self.dna.endianness)?;
 					let field_name = if count == 1 {
 						format!("{prefix}{}", decl.ident)
 					} else {

@@ -40,7 +40,7 @@ impl BlendFile {
 
 	/// Iterate all blocks starting at header-defined offset.
 	pub fn blocks(&self) -> BlockIter<'_> {
-		BlockIter::new(&self.bytes, self.blocks_offset)
+		BlockIter::new(&self.bytes, self.blocks_offset, self.header)
 	}
 
 	/// Scan basic block distribution statistics.
@@ -72,7 +72,7 @@ impl BlendFile {
 	/// Parse and return the first `DNA1` block as SDNA tables.
 	pub fn dna(&self) -> Result<Dna> {
 		let block = self.find_first_block_by_code(*b"DNA1")?.ok_or(BlendError::DnaNotFound)?;
-		Dna::parse(block.payload)
+		Dna::parse(block.payload, self.header.endianness, self.header.pointer_size)
 	}
 
 	/// Find the first block matching a four-byte code.
